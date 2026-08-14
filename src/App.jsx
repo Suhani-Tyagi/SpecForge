@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Header from './components/Header.jsx';
 import IntakeModule from './components/IntakeModule.jsx';
+import DemoScenarios from './components/DemoScenarios.jsx';
 import PipelineVisualizer from './components/PipelineVisualizer.jsx';
 import ReviewUI from './components/ReviewUI.jsx';
 import BatchProcessor from './components/BatchProcessor.jsx';
@@ -97,6 +98,11 @@ export default function App() {
               onRunPipeline={handleRunPipeline}
               isLoading={pipelineState.isProcessing}
               onRunDemo={handleRunDemo}
+            />
+
+            <DemoScenarios
+              onSelectScenario={handleRunPipeline}
+              isLoading={pipelineState.isProcessing}
             />
 
             <PipelineVisualizer

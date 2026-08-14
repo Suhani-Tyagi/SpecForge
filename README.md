@@ -13,58 +13,61 @@ SpecForge explicitly separates AI intelligence processing from human catalog gov
                         ↓
 STAGE 1 — AI Raw Extraction (Gemini 2.0 Flash Vision/Text)
                         ↓
-STAGE 2 — RAG Enrichment Engine (Knowledge Base Reference Retrieval + Inference)
+STAGE 2 — RAG Enrichment Engine (Knowledge Base Retrieval & Inference)
                         ↓
 STAGE 3 — Engineering Validation (Consistency Rules Engine + Unit Normalization)
                         ↓
-STAGE 4 — Human-In-The-Loop Approval & Governance (Review UI + Undo Stack)
+STAGE 4 — Source Authority Conflict Resolution (Source Precedence Engine)
                         ↓
-[Commerce-Ready Catalog Feed (JSON / CSV / PIM Export)]
+STAGE 5 — Commerce Readiness Gate Console (Completeness & Validation Check)
+                        ↓
+STAGE 6 — Human-In-The-Loop Approval & Governance (Review UI + Evidence Graph)
+                        ↓
+[Commerce-Ready Catalog Feed (JSON / CSV / PIM Export / Commerce Catalog)]
 ```
 
 ---
 
-## 🌟 Key Upgrades & Features
+## 🌟 Key Features & Evaluator Enhancements
 
-1. **AI Product Data Quality Dashboard**:
-   - Real-time derived scores for Overall Quality (0–100), Completeness %, Confidence %, Consistency %, Traceability %, and Human Approval progress.
+1. **Explainable AI & Evidence Graph**:
+   - Every attribute contains `value`, `confidence`, `source`, `evidence`, `reasoning`, `transformation`, `validationStatus`.
+   - Accessible **"Why this value?"** interaction opening an Evidence Drawer with concise justification snippets.
 
-2. **Field-Level Confidence Heatmap**:
-   - WCAG 2.2 AA accessible color-coded badges (`High` = Emerald, `Medium` = Amber, `Low` = Rose) with text labels, icons, source attribution (`Extracted`, `RAG Inferred`, `Category Default`), and reasoning tooltips.
+2. **Source Authority & Conflict Resolution Engine**:
+   - Detects competing values across data sources.
+   - Precedence: `Verified Database > Spec Sheet PDF > Supplier Text > RAG Inference > Category Baseline`.
+   - Interactive Conflict Resolution UI (`Accept Recommendation`, `Choose Alternative`, `Edit Custom`, `Dismiss`).
 
-3. **Before / After Data Diff View**:
-   - Step-by-step visual diff comparing Raw Input → Extracted → RAG Enriched → Validated → Human Approved with unit normalizations.
+3. **Commerce Readiness Gate Console**:
+   - Computes derived compliance metrics: Completeness %, Confidence %, Consistency %, Traceability %, Normalization %, Validation %.
+   - Clear status: `READY FOR CATALOG` or `NOT READY FOR CATALOG` with an explicit blocking issue checklist.
 
-4. **Audit Trail & Traceability Timeline**:
-   - Timestamped event log tracking field origins from intake to catalog export.
+4. **Engineering Rules Validation Explorer**:
+   - Interactive rules engine inspector displaying passed rules, warnings, and failures with input, severity, and recommended actions.
 
-5. **Duplicate Product Detection**:
-   - Similarity scoring against reference catalog (e.g. 94% match warning) with view and ignore options.
+5. **Supplier Data Quality Scorecard**:
+   - Visual progression: `Raw Supplier Payload` → `After Extraction` → `After RAG` → `After Validation` → `After Human Review`.
 
-6. **Controlled Concurrency Batch Processing Queue**:
-   - Controlled concurrency runner (Concurrency: 3) via `Promise.allSettled` with pause, resume, cancel, and throughput metrics.
+6. **Interactive Guided Demo Scenarios**:
+   - 5 guided test scenarios for competition judges:
+     1. Clean Product (Ball Bearing 6205)
+     2. Missing Attributes (Sparse Motor)
+     3. Conflicting Specifications (Fastener Conflict)
+     4. Low Confidence Product (Raw Pump Fragment)
+     5. Invalid Specification (Over-temperature PVC Valve)
 
-7. **Batch CSV Catalog Importer**:
-   - Modal importer for CSV catalog files with valid/invalid row detection.
+7. **Pipeline Observability & Diagnostics**:
+   - Real execution timing breakdown (Extraction ms, RAG ms, Validation ms, Conflict Check ms, Total ms).
 
-8. **Security & AI Response Validation**:
-   - Complete server-side isolation for Gemini credentials.
-   - Helmet Content Security Policy (CSP) & explicit CORS allowlist.
-   - SSRF protection guard (`server/utils/ssrfGuard.js`) for URL ingestion.
-   - Prompt injection defense (`server/middleware/promptSanitizer.js`).
-   - Zod AI response schema validation (`server/schemas/aiSchemas.js`) with 2 retries & exponential backoff.
-   - Secrets scanner script (`npm run audit-secrets`).
-
-9. **Automated Testing Suite**:
-   - Vitest unit suite covering knowledge base services, unit normalizer, and consistency rules.
+8. **Automated Testing Suite (26 Tests)**:
+   - Vitest unit suite covering knowledge base, unit normalizer, conflict resolver, and security guards.
    - Supertest integration suite covering Express API routes.
    - GitHub Actions CI workflow (`.github/workflows/ci.yml`).
 
-10. **WCAG 2.2 AA Accessibility & Motion Controls**:
-    - Accessible ARIA tablist navigation with arrow-key roving focus.
-    - Accessible icon buttons with explicit `aria-label`s.
-    - `aria-live="polite"` toast notification system.
-    - `@media (prefers-reduced-motion: reduce)` animation controls.
+9. **WCAG 2.2 AA Accessibility & Review Keyboard Shortcuts**:
+   - Keyboard review shortcuts (`Enter` = approve, `E` = edit, `R` = reject) with `aria-live` announcements.
+   - Roving focus, visible focus rings, ARIA landmarks, `aria-busy`, contrast controls, reduced motion support.
 
 ---
 
@@ -72,6 +75,7 @@ STAGE 4 — Human-In-The-Loop Approval & Governance (Review UI + Undo Stack)
 
 - **Run Dev Server**: `npm run dev:full`
 - **Run Unit & Integration Tests**: `npm test`
+- **Run Test Coverage Report**: `npm run test:coverage`
 - **Run Secrets Audit**: `npm run audit-secrets`
 - **Build Production Assets**: `npm run build`
 
