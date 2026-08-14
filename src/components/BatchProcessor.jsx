@@ -52,10 +52,14 @@ export default function BatchProcessor({ onSelectProductForReview }) {
       const item = batchItems[i];
       setProcessingState(prev => ({ ...prev, currentIndex: i }));
 
+      const headers = { 'Content-Type': 'application/json' };
+      const apiKey = import.meta.env.VITE_APP_API_KEY;
+      if (apiKey) headers['x-api-key'] = apiKey;
+
       try {
         const response = await fetch('/api/pipeline/full', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({
             inputType: 'text',
             textContent: item.textContent,

@@ -42,6 +42,15 @@ export default function App() {
       .catch(err => console.error('[SpecForge] Error loading knowledge base:', err));
   }, []);
 
+  const getHeaders = () => {
+    const headers = { 'Content-Type': 'application/json' };
+    const apiKey = import.meta.env.VITE_APP_API_KEY;
+    if (apiKey) {
+      headers['x-api-key'] = apiKey;
+    }
+    return headers;
+  };
+
   // Execute full 4-stage pipeline with live visualizer stage transitions
   const handleRunPipeline = async (inputPayload) => {
     setPipelineState({
@@ -61,10 +70,13 @@ export default function App() {
       setPipelineState(prev => ({ ...prev, activeStage: 1 }));
       const extractRes = await fetch('/api/pipeline/extract', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify(inputPayload)
       });
       const extractData = await extractRes.json();
+      if (!extractData.success && extractData.error) {
+        throw new Error(extractData.error);
+      }
 
       setPipelineState(prev => ({
         ...prev,
@@ -76,10 +88,13 @@ export default function App() {
       // Stage 2: RAG Enrichment
       const enrichRes = await fetch('/api/pipeline/enrich', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify(extractData)
       });
       const enrichData = await enrichRes.json();
+      if (!enrichData.success && enrichData.error) {
+        throw new Error(enrichData.error);
+      }
 
       setPipelineState(prev => ({
         ...prev,
@@ -91,10 +106,13 @@ export default function App() {
       // Stage 3: Validation & Traceability
       const validateRes = await fetch('/api/pipeline/validate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify(enrichData)
       });
       const validateData = await validateRes.json();
+      if (!validateData.success && validateData.error) {
+        throw new Error(validateData.error);
+      }
 
       const endTotal = Date.now() - startTotal;
       const finalProduct = validateData.data || validateData;
