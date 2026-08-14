@@ -28,6 +28,10 @@ app.get('/api/health', (req, res) => {
     status: 'healthy',
     system: 'SpecForge AI Product Intelligence',
     version: '1.0.0',
+    services: {
+      knowledgeBase: 'ready',
+      gemini: process.env.GEMINI_API_KEY ? 'configured' : 'not_configured'
+    },
     geminiKeyConfigured: Boolean(process.env.GEMINI_API_KEY)
   });
 });
@@ -42,10 +46,13 @@ app.use((err, req, res, next) => {
 
   const isProd = process.env.NODE_ENV === 'production';
   const statusCode = err.statusCode || err.status || 500;
+  const userErrorMsg = (statusCode < 500 || !isProd) 
+    ? err.message 
+    : 'SpecForge encountered an internal server error processing your request.';
 
   res.status(statusCode).json({
     success: false,
-    error: isProd ? 'An internal server error occurred processing your request.' : err.message,
+    error: userErrorMsg,
     requestId,
     ...(isProd ? {} : { stack: err.stack })
   });

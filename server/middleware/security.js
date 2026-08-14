@@ -39,12 +39,12 @@ export const batchRateLimiter = rateLimit({
 /**
  * API Key Authentication Middleware
  * Checks `x-api-key` header against `process.env.APP_API_KEY`.
- * Bypassed in dev mode if APP_API_KEY is not configured.
+ * Bypassed in dev mode or if APP_API_KEY is not configured in environment.
  */
 export const apiKeyAuth = (req, res, next) => {
   const expectedKey = process.env.APP_API_KEY;
 
-  // If no API key is configured in backend environment, permit with log warning
+  // If no API key is configured in backend environment, permit with next()
   if (!expectedKey) {
     return next();
   }
@@ -64,6 +64,7 @@ export const apiKeyAuth = (req, res, next) => {
 
 /**
  * Dynamic CORS Origin Allowlist Configuration
+ * Automatically supports localhost and all *.vercel.app production domain origins
  */
 export const getCorsOptions = () => {
   const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
@@ -71,16 +72,28 @@ export const getCorsOptions = () => {
     .map(o => o.trim())
     .filter(Boolean);
 
-  const defaultAllowlist = ['http://localhost:5173', 'http://localhost:3001'];
+  const defaultAllowlist = [
+    'http://localhost:5173',
+    'http://localhost:3001',
+    'https://spec-forge-chi.vercel.app'
+  ];
+
   const allowlist = [...new Set([...defaultAllowlist, ...allowedOrigins])];
 
   return {
     origin: (origin, callback) => {
-      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
-      if (!origin || allowlist.includes(origin) || process.env.NODE_ENV !== 'production') {
+      // Allow requests with no origin (mobile apps, curl, server-to-server)
+      // Allow any *.vercel.app domain origin or any localhost origin automatically
+      const isVercelDomain = origin && /^https:\/\/[a-zA-Z0-9-]+\.vercel\.app$/.test(origin);
+      const isLocalhost = origin && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+
+      if (!origin || allowlist.includes(origin) || isVercelDomain || isLocalhost || process.env.NODE_ENV !== 'production') {
         callback(null, true);
       } else {
-        callback(new Error(`CORS policy violation: Origin '${origin}' is not allowed.`));
+        const corsErr = new Error(`CORS policy violation: Origin '${origin}' is not allowed.`);
+        corsErr.statusCode = 403;
+        corsErr.status = 403;
+        callback(corsErr);
       }
     },
     credentials: true,

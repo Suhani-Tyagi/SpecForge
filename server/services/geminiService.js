@@ -395,9 +395,10 @@ Respond ONLY with valid JSON matching this schema:
     const validationResult = await this.validateProductData(enrichmentResult.data || enrichmentResult);
 
     const totalLatencyMs = Date.now() - totalStart;
+    const hasFinalRecord = Boolean(validationResult && validationResult.data);
 
     return {
-      success: true,
+      success: hasFinalRecord,
       totalLatencyMs,
       stages: {
         intake: extractionResult,
@@ -410,3 +411,4 @@ Respond ONLY with valid JSON matching this schema:
 }
 
 export const geminiService = new GeminiService();
+
