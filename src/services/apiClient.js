@@ -31,16 +31,20 @@ export async function apiRequest(endpoint, options = {}) {
     const data = await response.json().catch(() => null);
 
     if (!response.ok) {
-      let userFriendlyMsg = 'An error occurred while contacting the server.';
+      let userFriendlyMsg = data?.error?.message || data?.error || data?.message;
 
-      if (response.status === 400) {
-        userFriendlyMsg = data?.error || 'Invalid request payload format.';
-      } else if (response.status === 401) {
-        userFriendlyMsg = 'Unauthorized access: Invalid or missing API authentication credentials.';
-      } else if (response.status === 429) {
-        userFriendlyMsg = data?.error || 'Rate limit exceeded: Too many processing requests. Please wait a minute before retrying.';
-      } else if (response.status === 500) {
-        userFriendlyMsg = 'SpecForge processing service encountered an internal error. Please try again.';
+      if (!userFriendlyMsg || typeof userFriendlyMsg !== 'string') {
+        if (response.status === 400) {
+          userFriendlyMsg = 'Invalid request payload format. Please check submitted product fields.';
+        } else if (response.status === 401) {
+          userFriendlyMsg = 'Unauthorized: Missing or invalid API authentication key.';
+        } else if (response.status === 429) {
+          userFriendlyMsg = 'Rate limit exceeded: Too many processing requests. Please wait a minute before retrying.';
+        } else if (response.status === 500) {
+          userFriendlyMsg = 'SpecForge AI processing service encountered an internal error. Please try again.';
+        } else {
+          userFriendlyMsg = `Server returned HTTP status ${response.status}.`;
+        }
       }
 
       throw new ApiError(userFriendlyMsg, response.status, data?.requestId || requestId, data?.details);

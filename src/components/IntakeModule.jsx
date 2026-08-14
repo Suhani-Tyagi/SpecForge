@@ -105,10 +105,12 @@ export default function IntakeModule({ categories = [], onRunPipeline, isLoading
           <button
             type="button"
             onClick={onRunDemo}
-            className="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-bold text-xs font-mono rounded-lg shadow-md shrink-0 flex items-center space-x-1"
+            disabled={isLoading}
+            aria-busy={isLoading}
+            className="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-bold text-xs font-mono rounded-lg shadow-md shrink-0 flex items-center space-x-1 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Instant Demo Mode</span>
+            <Sparkles className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            <span>{isLoading ? 'Processing Demo...' : 'Instant Demo Mode'}</span>
           </button>
         )}
       </div>
@@ -137,8 +139,9 @@ export default function IntakeModule({ categories = [], onRunPipeline, isLoading
             <button
               key={idx}
               type="button"
+              disabled={isLoading}
               onClick={() => handlePresetSelect(preset)}
-              className="flex flex-col items-start p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 transition-all text-left group focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+              className="flex flex-col items-start p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 transition-all text-left group focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 disabled:opacity-50"
             >
               <span className="text-[10px] font-mono text-amber-400 font-semibold px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 mb-1">
                 {preset.badge}
@@ -350,6 +353,7 @@ export default function IntakeModule({ categories = [], onRunPipeline, isLoading
         <button
           type="submit"
           disabled={isLoading}
+          aria-busy={isLoading}
           className="w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-bold text-sm shadow-lg shadow-amber-500/20 transition-all disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
         >
           {isLoading ? (

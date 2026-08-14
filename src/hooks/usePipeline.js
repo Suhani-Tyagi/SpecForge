@@ -26,59 +26,37 @@ export function usePipeline() {
     const startTotal = Date.now();
 
     try {
-      // Stage 1: Intake & Extraction
-      setPipelineState(prev => ({ ...prev, activeStage: 1 }));
-      const extractData = await apiRequest('/api/pipeline/extract', {
+      // Execute 3-stage AI processing pipeline server-side via /api/pipeline/full
+      const fullResponse = await apiRequest('/api/pipeline/full', {
         method: 'POST',
         body: JSON.stringify(inputPayload)
       });
 
-      setPipelineState(prev => ({
-        ...prev,
-        completedStages: [...prev.completedStages, 1],
-        stages: { ...prev.stages, intake: extractData },
-        activeStage: 2
-      }));
-
-      // Stage 2: RAG Enrichment Engine
-      const enrichData = await apiRequest('/api/pipeline/enrich', {
-        method: 'POST',
-        body: JSON.stringify(extractData)
-      });
-
-      setPipelineState(prev => ({
-        ...prev,
-        completedStages: [...prev.completedStages, 2],
-        stages: { ...prev.stages, enrichment: enrichData },
-        activeStage: 3
-      }));
-
-      // Stage 3: Engineering & Consistency Validation
-      const validateData = await apiRequest('/api/pipeline/validate', {
-        method: 'POST',
-        body: JSON.stringify(enrichData)
-      });
-
       const endTotal = Date.now() - startTotal;
-      const finalProduct = validateData.data || validateData;
+      const finalProduct = fullResponse.finalRecord || fullResponse.stages?.validation?.data || fullResponse;
 
-      setPipelineState(prev => ({
-        ...prev,
+      setPipelineState({
         isProcessing: false,
-        activeStage: 4, // Ready for Stage 4 Human Review
+        activeStage: 4, // Stage 4: Ready for Human-In-The-Loop Review & Governance
         completedStages: [1, 2, 3],
-        stages: { ...prev.stages, validation: validateData },
+        stages: fullResponse.stages || {
+          intake: { stage: 1, success: true, data: finalProduct },
+          enrichment: { stage: 2, success: true, data: finalProduct },
+          validation: { stage: 3, success: true, data: finalProduct }
+        },
         finalRecord: finalProduct,
-        totalLatencyMs: endTotal
-      }));
+        totalLatencyMs: fullResponse.totalLatencyMs || endTotal,
+        error: null
+      });
 
       return finalProduct;
     } catch (err) {
-      console.error('[usePipeline] Pipeline Error:', err);
+      console.error('[usePipeline] Pipeline Execution Error:', err);
+      const userMessage = err.message || 'SpecForge could not complete processing. Please check backend connection.';
       setPipelineState(prev => ({
         ...prev,
         isProcessing: false,
-        error: err.message || 'Pipeline execution failed.'
+        error: userMessage
       }));
       throw err;
     }

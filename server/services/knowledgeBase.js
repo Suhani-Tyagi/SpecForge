@@ -1,11 +1,26 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
 
+const require = createRequire(import.meta.url);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const KNOWLEDGE_BASE_PATH = path.resolve(__dirname, '../../specforge-knowledge-base.json');
+// Statically require seed KB to guarantee inclusion in Vercel serverless bundle
+let staticSeedKB = null;
+try {
+  staticSeedKB = require('../../specforge-knowledge-base.json');
+} catch (e) {
+  console.warn('[KnowledgeBase] Static require fallback:', e.message);
+}
+
+const DEFAULT_CATEGORY_FALLBACK = {
+  code: "31-16-15",
+  category: "Fasteners",
+  subcategory: "Hex Bolts",
+  typical_attributes: ["material", "diameter_mm", "length_mm", "thread_pitch", "grade", "coating", "head_type"]
+};
 
 class KnowledgeBaseService {
   constructor() {
@@ -15,50 +30,65 @@ class KnowledgeBaseService {
 
   loadKB() {
     try {
-      const data = fs.readFileSync(KNOWLEDGE_BASE_PATH, 'utf-8');
-      this.kb = JSON.parse(data);
-      console.log(`[KnowledgeBase] Loaded ${this.kb.taxonomy.length} categories, ${this.kb.reference_products.length} reference products, ${this.kb.consistency_rules.length} consistency rules.`);
+      const KNOWLEDGE_BASE_PATH = path.resolve(__dirname, '../../specforge-knowledge-base.json');
+      if (fs.existsSync(KNOWLEDGE_BASE_PATH)) {
+        const data = fs.readFileSync(KNOWLEDGE_BASE_PATH, 'utf-8');
+        this.kb = JSON.parse(data);
+      } else if (staticSeedKB) {
+        this.kb = staticSeedKB;
+      } else {
+        throw new Error('Knowledge base JSON not found');
+      }
+      console.log(`[KnowledgeBase] Loaded ${this.getTaxonomy().length} categories, ${this.getReferenceProducts().length} reference products, ${this.getConsistencyRules().length} consistency rules.`);
     } catch (err) {
-      console.error('[KnowledgeBase] Error loading specforge-knowledge-base.json:', err);
-      this.kb = { meta: {}, taxonomy: [], reference_products: [], consistency_rules: [] };
+      console.error('[KnowledgeBase] Warning loading specforge-knowledge-base.json:', err.message);
+      this.kb = staticSeedKB || { meta: {}, taxonomy: [DEFAULT_CATEGORY_FALLBACK], reference_products: [], consistency_rules: [] };
     }
   }
 
   getTaxonomy() {
-    return this.kb.taxonomy || [];
+    return (this.kb && this.kb.taxonomy && this.kb.taxonomy.length > 0) 
+      ? this.kb.taxonomy 
+      : [DEFAULT_CATEGORY_FALLBACK];
   }
 
   getReferenceProducts() {
-    return this.kb.reference_products || [];
+    return (this.kb && this.kb.reference_products) ? this.kb.reference_products : [];
   }
 
   getConsistencyRules() {
-    return this.kb.consistency_rules || [];
+    return (this.kb && this.kb.consistency_rules) ? this.kb.consistency_rules : [];
   }
 
   getCategoryByCode(code) {
-    return this.getTaxonomy().find(cat => cat.code === code);
+    if (!code) return this.getTaxonomy()[0] || DEFAULT_CATEGORY_FALLBACK;
+    const found = this.getTaxonomy().find(cat => cat.code === code);
+    return found || this.getTaxonomy()[0] || DEFAULT_CATEGORY_FALLBACK;
   }
 
   findBestCategory(inputString) {
-    if (!inputString) return this.getTaxonomy()[0];
+    const taxonomy = this.getTaxonomy();
+    if (!inputString || taxonomy.length === 0) return taxonomy[0] || DEFAULT_CATEGORY_FALLBACK;
+    
     const text = inputString.toLowerCase();
     
     // Direct code match
-    const codeMatch = this.getTaxonomy().find(cat => cat.code === inputString);
+    const codeMatch = taxonomy.find(cat => cat.code === inputString);
     if (codeMatch) return codeMatch;
 
     // Subcategory or category match
     let bestCat = null;
     let maxScore = 0;
 
-    for (const cat of this.getTaxonomy()) {
+    for (const cat of taxonomy) {
       let score = 0;
-      if (text.includes(cat.subcategory.toLowerCase())) score += 5;
-      if (text.includes(cat.category.toLowerCase())) score += 3;
-      cat.typical_attributes.forEach(attr => {
-        if (text.includes(attr.replace(/_/g, ' '))) score += 1;
-      });
+      if (cat.subcategory && text.includes(cat.subcategory.toLowerCase())) score += 5;
+      if (cat.category && text.includes(cat.category.toLowerCase())) score += 3;
+      if (Array.isArray(cat.typical_attributes)) {
+        cat.typical_attributes.forEach(attr => {
+          if (text.includes(attr.replace(/_/g, ' '))) score += 1;
+        });
+      }
 
       if (score > maxScore) {
         maxScore = score;
@@ -66,14 +96,14 @@ class KnowledgeBaseService {
       }
     }
 
-    return bestCat || this.getTaxonomy()[0];
+    return bestCat || taxonomy[0] || DEFAULT_CATEGORY_FALLBACK;
   }
 
   /**
    * RAG Lookup: Retrieve reference products and aggregate category metrics for context
    */
   getRAGContext(categoryCode, rawAttributes = {}) {
-    const category = this.getCategoryByCode(categoryCode) || this.getTaxonomy()[0];
+    const category = this.getCategoryByCode(categoryCode) || DEFAULT_CATEGORY_FALLBACK;
     const categoryRefProducts = this.getReferenceProducts().filter(p => p.category_code === category.code);
     
     // Fallback to all reference products if none in exact category
@@ -83,7 +113,9 @@ class KnowledgeBaseService {
     const attributeDefaults = {};
     const attributeStats = {};
 
-    category.typical_attributes.forEach(attrKey => {
+    const attributesList = Array.isArray(category.typical_attributes) ? category.typical_attributes : DEFAULT_CATEGORY_FALLBACK.typical_attributes;
+
+    attributesList.forEach(attrKey => {
       const values = [];
       refPool.forEach(prod => {
         if (prod.attributes && prod.attributes[attrKey]) {
@@ -121,7 +153,7 @@ class KnowledgeBaseService {
   /**
    * Validate consistency rules on product attributes
    */
-  validateAttributes(categoryName, attributes) {
+  validateAttributes(categoryName, attributes = {}) {
     const rules = this.getRulesForCategory(categoryName);
     const violations = [];
 
@@ -174,14 +206,13 @@ class KnowledgeBaseService {
       if (text.includes('rpm should correlate')) {
         const rpm = getVal('rpm');
         if (rpm !== null && typeof rpm === 'number') {
-          // Check standard 50Hz motor synchronous ranges (3000, 1500, 1000, 750) with 15% slip margin
           const isValidRpm = (rpm > 650 && rpm < 1100) || (rpm > 1200 && rpm < 1650) || (rpm > 2500 && rpm < 3300);
           if (!isValidRpm && rpm > 0) {
             violations.push({
               rule: rule.rule,
               severity: rule.severity,
               field: 'rpm',
-              message: `RPM value (${rpm}) deviates from standard AC induction motor pole ranges (e.g. ~1440 RPM for 4-pole, ~2880 RPM for 2-pole).`
+              message: `RPM value (${rpm}) deviates from standard AC induction motor pole ranges.`
             });
           }
         }
@@ -197,7 +228,7 @@ class KnowledgeBaseService {
               rule: rule.rule,
               severity: rule.severity,
               field: 'outlet_size_mm',
-              message: `Pump outlet size (${outlet}mm) exceeds inlet size (${inlet}mm). Inlet should be equal or larger.`
+              message: `Pump outlet size (${outlet}mm) exceeds inlet size (${inlet}mm).`
             });
           }
         }
@@ -213,7 +244,7 @@ class KnowledgeBaseService {
               rule: rule.rule,
               severity: rule.severity,
               field: 'max_temp_c',
-              message: `Max temperature (${temp}°C) exceeds safety rating for PVC material (max ~60°C).`
+              message: `Max temperature (${temp}°C) exceeds safety rating for PVC material.`
             });
           }
         }

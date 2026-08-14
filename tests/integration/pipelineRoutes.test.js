@@ -18,6 +18,35 @@ describe('SpecForge API Routes Integration Tests', () => {
     expect(res.body.reference_products.length).toBe(12);
   });
 
+  it('POST /api/pipeline/full should succeed for Execute mode payload', async () => {
+    const res = await request(app)
+      .post('/api/pipeline/full')
+      .send({
+        inputType: 'text',
+        categoryCode: '23-15-16',
+        textContent: 'Deep groove ball bearing 6205-2RS, rubber sealed, 25mm bore.'
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.finalRecord).toBeDefined();
+    expect(res.body.finalRecord.category_code).toBe('23-15-16');
+  });
+
+  it('POST /api/pipeline/full should succeed for Instant Demo Mode payload', async () => {
+    const res = await request(app)
+      .post('/api/pipeline/full')
+      .send({
+        inputType: 'text',
+        categoryCode: '26-10-15',
+        textContent: 'Industrial 3-Phase AC Induction Motor 5.5 kW 415V 1440 RPM'
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.finalRecord).toBeDefined();
+  });
+
   it('POST /api/pipeline/extract should validate input payload with Zod (400 on text > 5000 chars)', async () => {
     const res = await request(app)
       .post('/api/pipeline/extract')
