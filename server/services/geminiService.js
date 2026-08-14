@@ -1,12 +1,16 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { knowledgeBaseService } from './knowledgeBase.js';
+import { sanitizeSupplierInput } from '../middleware/promptSanitizer.js';
+import { normalizeEnrichedAttributes } from '../utils/unitNormalizer.js';
+import { ExtractionResponseSchema, EnrichmentResponseSchema, ValidationResponseSchema } from '../schemas/aiSchemas.js';
 import dotenv from 'dotenv';
+
 dotenv.config();
 
 class GeminiService {
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY;
-    this.modelName = 'gemini-2.0-flash';
+    this.modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
     if (!this.apiKey) {
       console.warn('[GeminiService] Warning: GEMINI_API_KEY environment variable is not set.');
     }
@@ -28,11 +32,10 @@ class GeminiService {
   }
 
   /**
-   * Helper to safely parse JSON from Gemini's text output
+   * Helper to safely parse JSON with markdown code fence stripping
    */
   parseJSONResponse(text) {
     let clean = text.trim();
-    // Strip markdown code fences if present
     if (clean.startsWith('```')) {
       clean = clean.replace(/^```(json)?\n?/, '').replace(/\n?```$/, '');
     }
@@ -40,9 +43,26 @@ class GeminiService {
   }
 
   /**
-   * STAGE 1: INTAKE & EXTRACTION
-   * Extract raw attributes from text, category, image base64, or spec sheet text.
-   * Explicitly outputs "unknown" for missing attributes.
+   * Exponential backoff retry execution wrapper for Gemini API calls
+   */
+  async executeWithRetry(apiFn, retries = 2, delayMs = 1000) {
+    let lastError;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        return await apiFn();
+      } catch (err) {
+        lastError = err;
+        console.warn(`[GeminiService] API Call Attempt ${attempt + 1} failed: ${err.message}. Retrying in ${delayMs}ms...`);
+        if (attempt < retries) {
+          await new Promise(res => setTimeout(res, delayMs * Math.pow(2, attempt)));
+        }
+      }
+    }
+    throw lastError;
+  }
+
+  /**
+   * STAGE 1: INTAKE & AI EXTRACTION
    */
   async extractProductData({ inputType, textContent, imageBase64, mimeType, categoryCode }) {
     const startTime = Date.now();
@@ -51,55 +71,66 @@ class GeminiService {
       ? knowledgeBaseService.getCategoryByCode(categoryCode) 
       : knowledgeBaseService.findBestCategory(textContent || '');
 
+    const sanitizedText = sanitizeSupplierInput(textContent || '');
+
     const prompt = `
 You are SpecForge's Industrial Extraction AI (Stage 1).
-Your task is to analyze the provided industrial product input and extract structured raw attributes.
+Your task is to analyze the provided industrial product input and extract raw technical attributes.
 
-TAXONOMY CATEGORIES REFERENCE:
+TAXONOMY REFERENCE:
 ${JSON.stringify(taxonomy.map(t => ({ code: t.code, category: t.category, subcategory: t.subcategory, typical_attributes: t.typical_attributes })), null, 2)}
 
 DETECTED/TARGET CATEGORY:
 Code: ${selectedCategory.code} (${selectedCategory.category} -> ${selectedCategory.subcategory})
-Typical Attributes for this category: ${JSON.stringify(selectedCategory.typical_attributes)}
+Typical Attributes: ${JSON.stringify(selectedCategory.typical_attributes)}
 
 INPUT TYPE: ${inputType}
-${textContent ? `INPUT TEXT:\n"${textContent}"` : ''}
+${sanitizedText}
 
 INSTRUCTIONS:
-1. Identify the specific Product Name and confirm the 6-digit Category Code from the taxonomy.
-2. Extract all raw attributes present in the input matching the category's typical attributes, or any additional relevant technical attributes.
-3. CRITICAL RULE FOR ACCURACY: If an attribute is NOT explicitly mentioned or determinable from the input, set its value EXACTLY to "unknown". DO NOT hallucinate or guess missing values in this extraction stage — guessing occurs in Stage 2 (Enrichment).
+1. Identify the specific Product Name and confirm the Category Code.
+2. Extract raw attributes matching typical category attributes or other present technical specs.
+3. CRITICAL FIDELITY RULE: If an attribute is NOT explicitly mentioned or determinable from input, set value EXACTLY to "unknown". DO NOT guess missing values in this extraction stage!
 
-Respond ONLY with a valid JSON object matching this schema:
+Respond ONLY with valid JSON matching this schema:
 {
-  "product_name": "String name of product",
-  "category_code": "6-digit UNSPSC/ETIM code from taxonomy",
-  "category_name": "Category -> Subcategory name",
+  "product_name": "Product Name",
+  "category_code": "${selectedCategory.code}",
+  "category_name": "${selectedCategory.category} -> ${selectedCategory.subcategory}",
   "raw_attributes": {
     "attribute_key": "extracted value or unknown"
   },
-  "extraction_summary": "Short 1-sentence summary of raw extracted information"
+  "extraction_summary": "Short 1-sentence extraction summary"
 }
 `;
 
     try {
-      const model = this.getModel('gemini-2.0-flash');
-      let result;
+      const model = this.getModel();
+      const apiCall = async () => {
+        if (inputType === 'image' && imageBase64) {
+          const imagePart = {
+            inlineData: {
+              data: imageBase64.replace(/^data:image\/\w+;base64,/, ''),
+              mimeType: mimeType || 'image/jpeg'
+            }
+          };
+          return await model.generateContent([prompt, imagePart]);
+        } else {
+          return await model.generateContent(prompt);
+        }
+      };
 
-      if (inputType === 'image' && imageBase64) {
-        const imagePart = {
-          inlineData: {
-            data: imageBase64.replace(/^data:image\/\w+;base64,/, ''),
-            mimeType: mimeType || 'image/jpeg'
-          }
-        };
-        result = await model.generateContent([prompt, imagePart]);
-      } else {
-        result = await model.generateContent(prompt);
+      const result = await this.executeWithRetry(apiCall);
+      const responseText = result.response.text();
+      let rawJson = this.parseJSONResponse(responseText);
+
+      // Zod Validation & Auto-Repair fallback
+      const validated = ExtractionResponseSchema.safeParse(rawJson);
+      if (!validated.success) {
+        console.warn('[GeminiService] Stage 1 Zod validation warnings:', validated.error.errors);
       }
 
-      const responseText = result.response.text();
-      const extracted = this.parseJSONResponse(responseText);
+      const finalData = validated.success ? validated.data : rawJson;
       const latencyMs = Date.now() - startTime;
 
       return {
@@ -107,11 +138,10 @@ Respond ONLY with a valid JSON object matching this schema:
         stageName: 'Intake & Extraction',
         success: true,
         latencyMs,
-        data: extracted
+        data: finalData
       };
     } catch (err) {
       console.error('[GeminiService] Extraction Error:', err);
-      // Fallback response for graceful error handling
       return {
         stage: 1,
         stageName: 'Intake & Extraction',
@@ -122,16 +152,14 @@ Respond ONLY with a valid JSON object matching this schema:
           category_code: selectedCategory.code,
           category_name: `${selectedCategory.category} -> ${selectedCategory.subcategory}`,
           raw_attributes: selectedCategory.typical_attributes.reduce((acc, k) => ({ ...acc, [k]: 'unknown' }), {}),
-          extraction_summary: `Extraction failed: ${err.message}`
+          extraction_summary: `Extraction fallback: ${err.message}`
         }
       };
     }
   }
 
   /**
-   * STAGE 2: ENRICHMENT (RAG against specforge-knowledge-base.json)
-   * Infers "unknown" fields using retrieved RAG context & reference products.
-   * Assigns confidence (high/medium/low) and source (extracted/inferred/category_default) with reasoning.
+   * STAGE 2: RAG ENRICHMENT ENGINE
    */
   async enrichProductData(extractedPayload) {
     const startTime = Date.now();
@@ -143,7 +171,7 @@ Respond ONLY with a valid JSON object matching this schema:
 
     const prompt = `
 You are SpecForge's RAG Enrichment AI Engine (Stage 2).
-Your task is to take a product record with raw extracted attributes (some of which are "unknown") and enrich it by filling in missing values using the provided RAG Reference Knowledge Base.
+Your task is to enrich a product record with raw attributes (some of which are "unknown") by inferring missing values using RAG Reference Knowledge Base patterns.
 
 PRODUCT TO ENRICH:
 Product Name: "${extractedData.product_name}"
@@ -151,27 +179,20 @@ Category: ${extractedData.category_name} (Code: ${categoryCode})
 Raw Extracted Attributes:
 ${JSON.stringify(extractedData.raw_attributes, null, 2)}
 
-RAG KNOWLEDGE BASE CONTEXT (Reference Products & Category Standards):
+RAG KNOWLEDGE BASE CONTEXT:
 Category Typical Attributes: ${JSON.stringify(ragContext.category.typical_attributes)}
-Category Defaults from KB: ${JSON.stringify(ragContext.attributeDefaults, null, 2)}
+Category Defaults: ${JSON.stringify(ragContext.attributeDefaults, null, 2)}
 Matching Reference Products in KB:
 ${JSON.stringify(ragContext.referenceProducts, null, 2)}
 
 INSTRUCTIONS:
-1. For every attribute in raw_attributes (PLUS any missing typical attributes for this category):
-   - If raw_attributes already had a valid extracted value (not "unknown"), keep that value! Set source = "extracted", confidence = "high", and reasoning = "Explicitly extracted from input source."
-   - If raw_attributes value is "unknown", use the RAG reference products, physical engineering relationships, and category standards to infer a plausible best-guess value.
-     - If derived from a close reference product in KB, set source = "inferred", confidence = "medium", and reasoning = "Inferred from RAG reference product match [id]."
-     - If derived from general category defaults, set source = "category_default", confidence = "medium" or "low", and reasoning = "Standard industry baseline for category."
-2. Every enriched attribute object MUST have this exact schema:
-   {
-     "value": string | number | boolean,
-     "confidence": "high" | "medium" | "low",
-     "source": "extracted" | "inferred" | "category_default",
-     "reasoning": "Short concise string explaining origin"
-   }
+1. For every attribute in raw_attributes (plus typical category attributes):
+   - If raw_attributes had an explicit value (not "unknown"), KEEP IT! Set source = "extracted", confidence = "high", and reasoning = "Explicitly extracted from input source."
+   - If raw_attributes was "unknown", use RAG reference products and engineering norms to infer a plausible value.
+     - Derived from reference product: source = "inferred", confidence = "medium", reasoning = "Inferred from RAG reference pattern."
+     - Derived from category baseline: source = "category_default", confidence = "medium" or "low", reasoning = "Standard industry baseline."
 
-Respond ONLY with a valid JSON object matching this schema:
+Respond ONLY with valid JSON matching this schema:
 {
   "product_name": "${extractedData.product_name}",
   "category_code": "${categoryCode}",
@@ -181,23 +202,31 @@ Respond ONLY with a valid JSON object matching this schema:
       "value": "Value",
       "confidence": "high|medium|low",
       "source": "extracted|inferred|category_default",
-      "reasoning": "Reasoning text"
+      "reasoning": "Reasoning string"
     }
   },
-  "enrichment_summary": "Summary of attributes enriched vs extracted"
+  "enrichment_summary": "Summary of attributes enriched"
 }
 `;
 
     try {
-      const model = this.getModel('gemini-2.0-flash');
-      const result = await model.generateContent(prompt);
+      const model = this.getModel();
+      const result = await this.executeWithRetry(() => model.generateContent(prompt));
       const responseText = result.response.text();
-      const enriched = this.parseJSONResponse(responseText);
+      let rawJson = this.parseJSONResponse(responseText);
+
+      // Zod Validation & Auto-Repair fallback
+      const validated = EnrichmentResponseSchema.safeParse(rawJson);
+      const finalData = validated.success ? validated.data : rawJson;
+
+      // Apply Unit Normalization Layer
+      finalData.enriched_attributes = normalizeEnrichedAttributes(finalData.enriched_attributes);
+
       const latencyMs = Date.now() - startTime;
 
       return {
         stage: 2,
-        stageName: 'Enrichment (RAG Engine)',
+        stageName: 'RAG Enrichment Engine',
         success: true,
         latencyMs,
         ragContextUsed: {
@@ -205,37 +234,25 @@ Respond ONLY with a valid JSON object matching this schema:
           referenceProductsCount: ragContext.referenceProducts.length,
           rulesCount: ragContext.applicableRules.length
         },
-        data: enriched
+        data: finalData
       };
     } catch (err) {
       console.error('[GeminiService] Enrichment Error:', err);
-      // Fallback enrichment using deterministic KB defaults
-      const fallbackAttrs = {};
-      const raw = extractedData.raw_attributes || {};
-
-      Object.keys(raw).forEach(key => {
-        const val = raw[key];
-        if (val !== 'unknown' && val !== undefined) {
-          fallbackAttrs[key] = {
-            value: val,
-            confidence: 'high',
-            source: 'extracted',
-            reasoning: 'Extracted from source input'
-          };
-        } else {
-          const defVal = ragContext.attributeDefaults[key] || 'Standard';
-          fallbackAttrs[key] = {
-            value: defVal,
-            confidence: 'medium',
-            source: 'category_default',
-            reasoning: `Fallback category default from knowledge base`
-          };
-        }
-      });
+      const fallbackAttrs = normalizeEnrichedAttributes(
+        Object.keys(extractedData.raw_attributes || {}).reduce((acc, key) => {
+          const val = extractedData.raw_attributes[key];
+          if (val !== 'unknown' && val !== undefined) {
+            acc[key] = { value: val, confidence: 'high', source: 'extracted', reasoning: 'Extracted from source' };
+          } else {
+            acc[key] = { value: ragContext.attributeDefaults[key] || 'Standard', confidence: 'medium', source: 'category_default', reasoning: 'Fallback category default' };
+          }
+          return acc;
+        }, {})
+      );
 
       return {
         stage: 2,
-        stageName: 'Enrichment (RAG Engine)',
+        stageName: 'RAG Enrichment Engine',
         success: false,
         error: err.message,
         data: {
@@ -251,15 +268,13 @@ Respond ONLY with a valid JSON object matching this schema:
 
   /**
    * STAGE 3: VALIDATION & TRACEABILITY
-   * Validates attributes against consistency rules (e.g. bearing diameters, motor poles/rpm, pump inlet/outlet).
-   * Generates quality score and violation reports.
    */
   async validateProductData(enrichedPayload) {
     const startTime = Date.now();
     const enrichedData = enrichedPayload.data || enrichedPayload;
     const categoryName = enrichedData.category_name || '';
 
-    // Step 1: Run deterministic KB consistency rules
+    // Step 1: Execute deterministic Knowledge Base rules engine first
     const deterministicViolations = knowledgeBaseService.validateAttributes(
       categoryName, 
       enrichedData.enriched_attributes || {}
@@ -267,7 +282,7 @@ Respond ONLY with a valid JSON object matching this schema:
 
     const prompt = `
 You are SpecForge's Validation & Quality Control AI Engine (Stage 3).
-Your task is to audit a structured industrial product record for physical engineering consistency, attribute cross-validation, and catalog readiness.
+Audit this structured product record for physical engineering consistency and catalog readiness.
 
 ENRICHED PRODUCT RECORD:
 Product Name: "${enrichedData.product_name}"
@@ -275,41 +290,41 @@ Category: ${categoryName} (Code: ${enrichedData.category_code})
 Attributes:
 ${JSON.stringify(enrichedData.enriched_attributes, null, 2)}
 
-DETERMINISTIC KNOWLEDGE BASE RULE CHECKS PERFORMED:
+DETERMINISTIC RULE CHECKS PERFORMED:
 ${JSON.stringify(deterministicViolations, null, 2)}
 
 INSTRUCTIONS:
-1. Review all attribute values, confidence scores, and physical relationships.
-2. Check for technical contradictions (e.g. invalid units, impossible physical dimensions, material/temperature incompatibilities).
-3. Calculate an overall Data Quality Score (0 to 100) based on confidence levels, completeness, and consistency.
-4. Assign an overall record validation status: "valid" (no major issues), "warning" (minor issues/low confidence), or "error" (critical rule violations).
+1. Audit physical dimensions, material ratings, and unit consistency.
+2. Calculate overall Data Quality Score (0 to 100) based on confidence levels, completeness, and consistency.
+3. Assign status: "valid", "warning", or "error".
 
-Respond ONLY with a valid JSON object matching this schema:
+Respond ONLY with valid JSON matching this schema:
 {
-  "status": "valid" | "warning" | "error",
+  "status": "valid|warning|error",
   "quality_score": 85,
-  "summary": "Validation audit narrative summary",
+  "summary": "Validation narrative summary",
   "rule_violations": [
     {
       "rule": "Rule description",
-      "severity": "warning" | "error",
+      "severity": "warning|error",
       "field": "attribute_name",
-      "message": "Specific explanation of contradiction"
+      "message": "Explanation of issue"
     }
   ],
-  "recommendations": [
-    "Recommended human review action"
-  ]
+  "recommendations": ["Human review recommendation"]
 }
 `;
 
     try {
-      const model = this.getModel('gemini-2.0-flash');
-      const result = await model.generateContent(prompt);
+      const model = this.getModel();
+      const result = await this.executeWithRetry(() => model.generateContent(prompt));
       const responseText = result.response.text();
-      const aiValidation = this.parseJSONResponse(responseText);
+      let rawJson = this.parseJSONResponse(responseText);
 
-      // Merge deterministic violations with AI audit results to prevent missing any KB rule
+      const validated = ValidationResponseSchema.safeParse(rawJson);
+      const aiValidation = validated.success ? validated.data : rawJson;
+
+      // Merge deterministic violations with AI findings
       const allViolations = [...deterministicViolations];
       (aiValidation.rule_violations || []).forEach(v => {
         if (!allViolations.some(dv => dv.rule === v.rule || dv.field === v.field)) {
@@ -338,7 +353,7 @@ Respond ONLY with a valid JSON object matching this schema:
           validation: {
             status: finalStatus,
             quality_score: aiValidation.quality_score || (finalStatus === 'error' ? 55 : finalStatus === 'warning' ? 78 : 95),
-            summary: aiValidation.summary || 'Validation completed successfully.',
+            summary: aiValidation.summary || 'Validation completed.',
             rule_violations: allViolations,
             recommendations: aiValidation.recommendations || []
           }
@@ -360,7 +375,7 @@ Respond ONLY with a valid JSON object matching this schema:
           validation: {
             status: deterministicViolations.length > 0 ? 'warning' : 'valid',
             quality_score: 75,
-            summary: `Validation completed with deterministic rules (${err.message})`,
+            summary: `Validation fallback applied (${err.message})`,
             rule_violations: deterministicViolations,
             recommendations: ['Review low confidence attributes manually.']
           }
@@ -370,18 +385,13 @@ Respond ONLY with a valid JSON object matching this schema:
   }
 
   /**
-   * Run complete 4-Stage End-to-End Pipeline for a single product
+   * Run complete 3-Stage AI Processing Pipeline
    */
   async runFullPipeline(inputData) {
     const totalStart = Date.now();
 
-    // Stage 1: Extraction
     const extractionResult = await this.extractProductData(inputData);
-    
-    // Stage 2: RAG Enrichment
     const enrichmentResult = await this.enrichProductData(extractionResult.data || extractionResult);
-
-    // Stage 3: Validation & Traceability
     const validationResult = await this.validateProductData(enrichmentResult.data || enrichmentResult);
 
     const totalLatencyMs = Date.now() - totalStart;

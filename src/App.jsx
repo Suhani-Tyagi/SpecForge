@@ -5,6 +5,11 @@ import PipelineVisualizer from './components/PipelineVisualizer.jsx';
 import ReviewUI from './components/ReviewUI.jsx';
 import BatchProcessor from './components/BatchProcessor.jsx';
 import KnowledgeBaseExplorer from './components/KnowledgeBaseExplorer.jsx';
+import QualityDashboard from './components/QualityDashboard.jsx';
+import EngineeringReadinessPanel from './components/EngineeringReadinessPanel.jsx';
+import ToastContainer from './components/Toast.jsx';
+import { usePipeline } from './hooks/usePipeline.js';
+import { useToast } from './hooks/useToast.js';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('studio'); // 'studio', 'review', 'batch', 'kb'
@@ -14,16 +19,8 @@ export default function App() {
     consistency_rules: []
   });
 
-  const [pipelineState, setPipelineState] = useState({
-    isProcessing: false,
-    activeStage: 0,
-    completedStages: [],
-    stages: {},
-    finalRecord: null,
-    totalLatencyMs: 0,
-    error: null
-  });
-
+  const { pipelineState, runPipeline } = usePipeline();
+  const { toasts, addToast, removeToast } = useToast();
   const [reviewProduct, setReviewProduct] = useState(null);
 
   // Fetch Knowledge Base on Mount
@@ -42,121 +39,56 @@ export default function App() {
       .catch(err => console.error('[SpecForge] Error loading knowledge base:', err));
   }, []);
 
-  const getHeaders = () => {
-    const headers = { 'Content-Type': 'application/json' };
-    const apiKey = import.meta.env.VITE_APP_API_KEY;
-    if (apiKey) {
-      headers['x-api-key'] = apiKey;
+  const handleRunPipeline = async (inputPayload) => {
+    try {
+      const finalProduct = await runPipeline(inputPayload);
+      setReviewProduct(finalProduct);
+      addToast('3-Stage AI Processing Pipeline executed successfully!', 'success');
+    } catch (err) {
+      addToast(err.message || 'Pipeline execution failed.', 'error');
     }
-    return headers;
   };
 
-  // Execute full 4-stage pipeline with live visualizer stage transitions
-  const handleRunPipeline = async (inputPayload) => {
-    setPipelineState({
-      isProcessing: true,
-      activeStage: 1,
-      completedStages: [],
-      stages: {},
-      finalRecord: null,
-      totalLatencyMs: 0,
-      error: null
-    });
-
-    const startTotal = Date.now();
-
-    try {
-      // Stage 1: Extraction
-      setPipelineState(prev => ({ ...prev, activeStage: 1 }));
-      const extractRes = await fetch('/api/pipeline/extract', {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(inputPayload)
-      });
-      const extractData = await extractRes.json();
-      if (!extractData.success && extractData.error) {
-        throw new Error(extractData.error);
-      }
-
-      setPipelineState(prev => ({
-        ...prev,
-        completedStages: [...prev.completedStages, 1],
-        stages: { ...prev.stages, intake: extractData },
-        activeStage: 2
-      }));
-
-      // Stage 2: RAG Enrichment
-      const enrichRes = await fetch('/api/pipeline/enrich', {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(extractData)
-      });
-      const enrichData = await enrichRes.json();
-      if (!enrichData.success && enrichData.error) {
-        throw new Error(enrichData.error);
-      }
-
-      setPipelineState(prev => ({
-        ...prev,
-        completedStages: [...prev.completedStages, 2],
-        stages: { ...prev.stages, enrichment: enrichData },
-        activeStage: 3
-      }));
-
-      // Stage 3: Validation & Traceability
-      const validateRes = await fetch('/api/pipeline/validate', {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(enrichData)
-      });
-      const validateData = await validateRes.json();
-      if (!validateData.success && validateData.error) {
-        throw new Error(validateData.error);
-      }
-
-      const endTotal = Date.now() - startTotal;
-      const finalProduct = validateData.data || validateData;
-
-      setPipelineState(prev => ({
-        ...prev,
-        isProcessing: false,
-        activeStage: 4,
-        completedStages: [1, 2, 3, 4],
-        stages: { ...prev.stages, validation: validateData },
-        finalRecord: finalProduct,
-        totalLatencyMs: endTotal
-      }));
-
-      setReviewProduct(finalProduct);
-
-    } catch (err) {
-      console.error('[SpecForge] Pipeline Execution Error:', err);
-      setPipelineState(prev => ({
-        ...prev,
-        isProcessing: false,
-        error: err.message
-      }));
-    }
+  // Instant Demo Mode execution for competition judges
+  const handleRunDemo = () => {
+    const demoPayload = {
+      inputType: 'text',
+      categoryCode: '23-15-16',
+      textContent: 'Deep groove ball bearing 6205-2RS, rubber sealed, 25mm bore. High speed industrial application.'
+    };
+    handleRunPipeline(demoPayload);
   };
 
   const handleSelectProductForReview = (productData) => {
     setReviewProduct(productData);
     setActiveTab('review');
+    addToast('Product loaded into HITL Review UI.', 'info');
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0F17] text-slate-100 flex flex-col selection:bg-amber-500/30 selection:text-amber-200">
+    <div className="min-h-screen bg-[#0A0E17] text-slate-100 flex flex-col selection:bg-amber-500/30 selection:text-amber-200">
       
-      {/* Top Header & Navigation */}
+      {/* Toast Notification Container */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
+
+      {/* Top Navigation */}
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         activeProductCount={reviewProduct ? 1 : 0}
       />
 
-      {/* Main App Canvas */}
+      {/* Main Canvas */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         
+        {/* Quality & Readiness Panels */}
+        {pipelineState.finalRecord && (
+          <QualityDashboard
+            record={reviewProduct || pipelineState.finalRecord}
+            attributesState={reviewProduct?.attributes || pipelineState.finalRecord?.attributes || {}}
+          />
+        )}
+
         {/* TAB 1: Pipeline Studio */}
         {activeTab === 'studio' && (
           <div className="space-y-6">
@@ -164,6 +96,7 @@ export default function App() {
               categories={knowledgeBase.taxonomy}
               onRunPipeline={handleRunPipeline}
               isLoading={pipelineState.isProcessing}
+              onRunDemo={handleRunDemo}
             />
 
             <PipelineVisualizer
@@ -171,6 +104,8 @@ export default function App() {
               activeStage={pipelineState.activeStage}
               onSelectStageForReview={() => setActiveTab('review')}
             />
+
+            <EngineeringReadinessPanel />
           </div>
         )}
 
@@ -178,14 +113,17 @@ export default function App() {
         {activeTab === 'review' && (
           <ReviewUI
             initialRecord={reviewProduct || pipelineState.finalRecord}
-            onSaveRecord={(updated) => setReviewProduct(updated)}
+            referenceProducts={knowledgeBase.reference_products}
+            stagesData={pipelineState.stages}
+            onToast={addToast}
           />
         )}
 
-        {/* TAB 3: Batch Scalability Demo */}
+        {/* TAB 3: Batch Processing Demo */}
         {activeTab === 'batch' && (
           <BatchProcessor
             onSelectProductForReview={handleSelectProductForReview}
+            onToast={addToast}
           />
         )}
 
@@ -201,8 +139,8 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800 bg-slate-950 py-4 text-center text-xs font-mono text-slate-500">
-        SpecForge — Hackathon Edition | Powered by Gemini 2.0 Flash & Knowledge Base RAG Engine
+      <footer className="border-t border-slate-800/80 bg-slate-950 py-4 text-center text-xs font-mono text-slate-500">
+        SpecForge — Enterprise AI Platform | 3-Stage AI Pipeline + Stage 4 Human Approval & Commerce Output
       </footer>
 
     </div>
