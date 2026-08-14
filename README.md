@@ -67,10 +67,3 @@
 
 ---
 
-## ☁️ Deploying to Vercel
-
-1. Push code to GitHub repository (`https://github.com/Suhani-Tyagi/SpecForge.git`).
-2. Import project into Vercel Dashboard.
-3. Add Environment Variable:
-   - `GEMINI_API_KEY`: Your Gemini API key.
-4. Deploy! Vercel handles static frontend build and `/api` serverless routes out of the box using `vercel.json`.
