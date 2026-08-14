@@ -1,0 +1,221 @@
+{
+  "meta": {
+    "name": "SpecForge Knowledge Base",
+    "description": "Seed taxonomy and reference product data for RAG-style enrichment of sparse industrial product inputs.",
+    "taxonomy_standard": "Simplified subset inspired by UNSPSC / ETIM classification structures",
+    "version": "0.1.0"
+  },
+
+  "taxonomy": [
+    { "code": "31-16-15", "category": "Fasteners", "subcategory": "Hex Bolts", "typical_attributes": ["material", "diameter_mm", "length_mm", "thread_pitch", "grade", "coating", "head_type"] },
+    { "code": "31-16-17", "category": "Fasteners", "subcategory": "Machine Screws", "typical_attributes": ["material", "diameter_mm", "length_mm", "drive_type", "head_type", "coating"] },
+    { "code": "31-16-20", "category": "Fasteners", "subcategory": "Washers", "typical_attributes": ["material", "inner_diameter_mm", "outer_diameter_mm", "thickness_mm", "type"] },
+    { "code": "23-15-16", "category": "Bearings", "subcategory": "Ball Bearings", "typical_attributes": ["bore_diameter_mm", "outer_diameter_mm", "width_mm", "material", "seal_type", "load_rating_dynamic_N", "max_rpm"] },
+    { "code": "23-15-18", "category": "Bearings", "subcategory": "Roller Bearings", "typical_attributes": ["bore_diameter_mm", "outer_diameter_mm", "width_mm", "material", "load_rating_dynamic_N", "max_rpm"] },
+    { "code": "26-10-15", "category": "Motors & Drives", "subcategory": "AC Induction Motors", "typical_attributes": ["power_kw", "voltage_v", "phase", "rpm", "frame_size", "enclosure_type", "efficiency_class", "mounting"] },
+    { "code": "26-10-16", "category": "Motors & Drives", "subcategory": "Servo Motors", "typical_attributes": ["power_kw", "voltage_v", "rated_torque_nm", "max_rpm", "feedback_type", "mounting"] },
+    { "code": "40-10-15", "category": "Pumps", "subcategory": "Centrifugal Pumps", "typical_attributes": ["flow_rate_m3h", "head_m", "power_kw", "inlet_size_mm", "outlet_size_mm", "material", "max_temp_c", "seal_type"] },
+    { "code": "40-10-20", "category": "Pumps", "subcategory": "Diaphragm Pumps", "typical_attributes": ["flow_rate_m3h", "max_pressure_bar", "material", "connection_size_mm", "power_source"] },
+    { "code": "40-15-10", "category": "Valves", "subcategory": "Ball Valves", "typical_attributes": ["size_mm", "material", "pressure_rating_bar", "connection_type", "actuation_type", "max_temp_c"] },
+    { "code": "40-15-15", "category": "Valves", "subcategory": "Gate Valves", "typical_attributes": ["size_mm", "material", "pressure_rating_bar", "connection_type", "max_temp_c"] },
+    { "code": "39-12-10", "category": "Electrical Components", "subcategory": "Industrial Cables", "typical_attributes": ["conductor_material", "cross_section_mm2", "voltage_rating_v", "insulation_type", "core_count", "outer_diameter_mm"] },
+    { "code": "39-12-15", "category": "Electrical Components", "subcategory": "Circuit Breakers", "typical_attributes": ["rated_current_a", "voltage_rating_v", "breaking_capacity_ka", "poles", "trip_curve", "mounting"] },
+    { "code": "27-11-15", "category": "Hand Tools", "subcategory": "Wrenches", "typical_attributes": ["material", "size_mm", "type", "length_mm", "finish"] },
+    { "code": "27-11-20", "category": "Power Tools", "subcategory": "Angle Grinders", "typical_attributes": ["power_w", "disc_diameter_mm", "no_load_rpm", "voltage_v", "weight_kg"] },
+    { "code": "30-10-10", "category": "Structural Components", "subcategory": "Steel Beams", "typical_attributes": ["profile_type", "material", "length_mm", "height_mm", "width_mm", "weight_per_meter_kg"] },
+    { "code": "41-11-10", "category": "Sensors", "subcategory": "Proximity Sensors", "typical_attributes": ["sensing_range_mm", "output_type", "voltage_v", "housing_material", "ip_rating", "connector_type"] },
+    { "code": "41-11-20", "category": "Sensors", "subcategory": "Pressure Sensors", "typical_attributes": ["pressure_range_bar", "output_signal", "accuracy_percent", "voltage_v", "connection_type", "ip_rating"] },
+    { "code": "24-10-10", "category": "Material Handling", "subcategory": "Conveyor Belts", "typical_attributes": ["belt_width_mm", "material", "max_load_kg_per_m", "temperature_range_c", "belt_type"] },
+    { "code": "24-10-20", "category": "Material Handling", "subcategory": "Industrial Casters", "typical_attributes": ["wheel_diameter_mm", "material", "load_capacity_kg", "mount_type", "brake_type"] }
+  ],
+
+  "reference_products": [
+    {
+      "id": "REF-001",
+      "category_code": "31-16-15",
+      "name": "Hex Bolt M10x50 Grade 8.8 Zinc Plated",
+      "attributes": {
+        "material": { "value": "Carbon Steel", "confidence": "high", "source": "extracted" },
+        "diameter_mm": { "value": 10, "confidence": "high", "source": "extracted" },
+        "length_mm": { "value": 50, "confidence": "high", "source": "extracted" },
+        "thread_pitch": { "value": "1.5mm", "confidence": "high", "source": "extracted" },
+        "grade": { "value": "8.8", "confidence": "high", "source": "extracted" },
+        "coating": { "value": "Zinc Plated", "confidence": "high", "source": "extracted" },
+        "head_type": { "value": "Hex", "confidence": "high", "source": "extracted" }
+      }
+    },
+    {
+      "id": "REF-002",
+      "category_code": "23-15-16",
+      "name": "Deep Groove Ball Bearing 6205-2RS",
+      "attributes": {
+        "bore_diameter_mm": { "value": 25, "confidence": "high", "source": "extracted" },
+        "outer_diameter_mm": { "value": 52, "confidence": "high", "source": "extracted" },
+        "width_mm": { "value": 15, "confidence": "high", "source": "extracted" },
+        "material": { "value": "Chrome Steel", "confidence": "high", "source": "extracted" },
+        "seal_type": { "value": "Rubber Sealed (2RS)", "confidence": "high", "source": "extracted" },
+        "load_rating_dynamic_N": { "value": 14000, "confidence": "medium", "source": "category_default" },
+        "max_rpm": { "value": 12000, "confidence": "medium", "source": "category_default" }
+      }
+    },
+    {
+      "id": "REF-003",
+      "category_code": "26-10-15",
+      "name": "3-Phase AC Induction Motor 5.5kW IE3",
+      "attributes": {
+        "power_kw": { "value": 5.5, "confidence": "high", "source": "extracted" },
+        "voltage_v": { "value": 415, "confidence": "high", "source": "extracted" },
+        "phase": { "value": "3-phase", "confidence": "high", "source": "extracted" },
+        "rpm": { "value": 1440, "confidence": "high", "source": "extracted" },
+        "frame_size": { "value": "112M", "confidence": "medium", "source": "category_default" },
+        "enclosure_type": { "value": "TEFC (IP55)", "confidence": "high", "source": "extracted" },
+        "efficiency_class": { "value": "IE3", "confidence": "high", "source": "extracted" },
+        "mounting": { "value": "Foot Mounted (B3)", "confidence": "medium", "source": "category_default" }
+      }
+    },
+    {
+      "id": "REF-004",
+      "category_code": "40-10-15",
+      "name": "Centrifugal Pump 10m3/h Cast Iron",
+      "attributes": {
+        "flow_rate_m3h": { "value": 10, "confidence": "high", "source": "extracted" },
+        "head_m": { "value": 25, "confidence": "medium", "source": "category_default" },
+        "power_kw": { "value": 1.5, "confidence": "medium", "source": "inferred" },
+        "inlet_size_mm": { "value": 50, "confidence": "high", "source": "extracted" },
+        "outlet_size_mm": { "value": 40, "confidence": "high", "source": "extracted" },
+        "material": { "value": "Cast Iron", "confidence": "high", "source": "extracted" },
+        "max_temp_c": { "value": 90, "confidence": "medium", "source": "category_default" },
+        "seal_type": { "value": "Mechanical Seal", "confidence": "medium", "source": "category_default" }
+      }
+    },
+    {
+      "id": "REF-005",
+      "category_code": "40-15-10",
+      "name": "Stainless Steel Ball Valve 25mm PN16",
+      "attributes": {
+        "size_mm": { "value": 25, "confidence": "high", "source": "extracted" },
+        "material": { "value": "Stainless Steel 316", "confidence": "high", "source": "extracted" },
+        "pressure_rating_bar": { "value": 16, "confidence": "high", "source": "extracted" },
+        "connection_type": { "value": "Threaded (BSP)", "confidence": "high", "source": "extracted" },
+        "actuation_type": { "value": "Manual Lever", "confidence": "high", "source": "extracted" },
+        "max_temp_c": { "value": 180, "confidence": "medium", "source": "category_default" }
+      }
+    },
+    {
+      "id": "REF-006",
+      "category_code": "39-12-10",
+      "name": "Industrial Control Cable 4-Core 1.5mm2",
+      "attributes": {
+        "conductor_material": { "value": "Copper", "confidence": "high", "source": "extracted" },
+        "cross_section_mm2": { "value": 1.5, "confidence": "high", "source": "extracted" },
+        "voltage_rating_v": { "value": 450, "confidence": "medium", "source": "category_default" },
+        "insulation_type": { "value": "PVC", "confidence": "high", "source": "extracted" },
+        "core_count": { "value": 4, "confidence": "high", "source": "extracted" },
+        "outer_diameter_mm": { "value": 8.5, "confidence": "low", "source": "inferred" }
+      }
+    },
+    {
+      "id": "REF-007",
+      "category_code": "39-12-15",
+      "name": "MCB Circuit Breaker 32A Single Pole",
+      "attributes": {
+        "rated_current_a": { "value": 32, "confidence": "high", "source": "extracted" },
+        "voltage_rating_v": { "value": 240, "confidence": "high", "source": "extracted" },
+        "breaking_capacity_ka": { "value": 6, "confidence": "medium", "source": "category_default" },
+        "poles": { "value": 1, "confidence": "high", "source": "extracted" },
+        "trip_curve": { "value": "Type C", "confidence": "medium", "source": "category_default" },
+        "mounting": { "value": "DIN Rail", "confidence": "high", "source": "extracted" }
+      }
+    },
+    {
+      "id": "REF-008",
+      "category_code": "27-11-20",
+      "name": "Angle Grinder 850W 115mm Disc",
+      "attributes": {
+        "power_w": { "value": 850, "confidence": "high", "source": "extracted" },
+        "disc_diameter_mm": { "value": 115, "confidence": "high", "source": "extracted" },
+        "no_load_rpm": { "value": 11000, "confidence": "medium", "source": "category_default" },
+        "voltage_v": { "value": 230, "confidence": "high", "source": "extracted" },
+        "weight_kg": { "value": 1.9, "confidence": "medium", "source": "inferred" }
+      }
+    },
+    {
+      "id": "REF-009",
+      "category_code": "30-10-10",
+      "name": "Steel I-Beam 200x100mm 6m Length",
+      "attributes": {
+        "profile_type": { "value": "I-Beam (IPE)", "confidence": "high", "source": "extracted" },
+        "material": { "value": "Structural Steel S275", "confidence": "high", "source": "extracted" },
+        "length_mm": { "value": 6000, "confidence": "high", "source": "extracted" },
+        "height_mm": { "value": 200, "confidence": "high", "source": "extracted" },
+        "width_mm": { "value": 100, "confidence": "high", "source": "extracted" },
+        "weight_per_meter_kg": { "value": 18.4, "confidence": "medium", "source": "category_default" }
+      }
+    },
+    {
+      "id": "REF-010",
+      "category_code": "41-11-10",
+      "name": "Inductive Proximity Sensor M12 4mm Range",
+      "attributes": {
+        "sensing_range_mm": { "value": 4, "confidence": "high", "source": "extracted" },
+        "output_type": { "value": "PNP NO", "confidence": "high", "source": "extracted" },
+        "voltage_v": { "value": 24, "confidence": "high", "source": "extracted" },
+        "housing_material": { "value": "Nickel-Plated Brass", "confidence": "medium", "source": "category_default" },
+        "ip_rating": { "value": "IP67", "confidence": "medium", "source": "category_default" },
+        "connector_type": { "value": "M12 Connector", "confidence": "high", "source": "extracted" }
+      }
+    },
+    {
+      "id": "REF-011",
+      "category_code": "24-10-10",
+      "name": "Rubber Conveyor Belt 500mm Width",
+      "attributes": {
+        "belt_width_mm": { "value": 500, "confidence": "high", "source": "extracted" },
+        "material": { "value": "Rubber (EP Fabric)", "confidence": "high", "source": "extracted" },
+        "max_load_kg_per_m": { "value": 40, "confidence": "medium", "source": "category_default" },
+        "temperature_range_c": { "value": "-20 to 80", "confidence": "medium", "source": "category_default" },
+        "belt_type": { "value": "Flat Fabric Belt", "confidence": "high", "source": "extracted" }
+      }
+    },
+    {
+      "id": "REF-012",
+      "category_code": "24-10-20",
+      "name": "Heavy Duty Swivel Caster 100mm with Brake",
+      "attributes": {
+        "wheel_diameter_mm": { "value": 100, "confidence": "high", "source": "extracted" },
+        "material": { "value": "Polyurethane", "confidence": "high", "source": "extracted" },
+        "load_capacity_kg": { "value": 150, "confidence": "medium", "source": "category_default" },
+        "mount_type": { "value": "Plate Mount", "confidence": "high", "source": "extracted" },
+        "brake_type": { "value": "Total Lock Brake", "confidence": "high", "source": "extracted" }
+      }
+    }
+  ],
+
+  "consistency_rules": [
+    {
+      "applies_to": "Fasteners",
+      "rule": "diameter_mm must be less than length_mm for standard bolts",
+      "severity": "warning"
+    },
+    {
+      "applies_to": "Bearings",
+      "rule": "outer_diameter_mm must be greater than bore_diameter_mm",
+      "severity": "error"
+    },
+    {
+      "applies_to": "Motors & Drives",
+      "rule": "rpm should correlate with pole count typical ranges (2-pole ~3000rpm, 4-pole ~1500rpm, 6-pole ~1000rpm at 50Hz)",
+      "severity": "warning"
+    },
+    {
+      "applies_to": "Pumps",
+      "rule": "outlet_size_mm is typically less than or equal to inlet_size_mm",
+      "severity": "warning"
+    },
+    {
+      "applies_to": "Valves",
+      "rule": "max_temp_c should be consistent with stated material (e.g. PVC valves should not exceed ~60C)",
+      "severity": "warning"
+    }
+  ]
+}
