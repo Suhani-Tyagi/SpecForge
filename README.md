@@ -1,86 +1,63 @@
-# ⚡ SpecForge — Industrial Product Intelligence & Governance System
+# ⚡ SPECForge — AI Product Intelligence & Governance
 
-> **Stop bad product data before it reaches your catalog.**
-> SpecForge is an AI-powered product intelligence and governance layer that extracts, validates, challenges and proves supplier specifications before publication.
+> **Turn messy supplier information into trusted, commerce-ready product data.**
+> SpecForge extracts, validates, challenges and explains product information before it reaches your catalog.
 
 ---
 
-## 🎯 Primary Workflow Architecture
+## 🎯 Conceptual Backbone Workflow
 
 ```
-INGEST → UNDERSTAND → CHALLENGE → VALIDATE → PROVE → DECIDE → PUBLISH
-```
-
-### End-to-End Processing Lineage
-```
-[Supplier Ingestion (PDF / Image / Text / API)]
-                         ↓
-STAGE 01 — Multimodal AI Extraction (Gemini 2.0 Flash)
-                         ↓
-STAGE 02 — RAG Vector Taxonomy & Knowledge Base Check
-                         ↓
-STAGE 03 — Deterministic Unit Normalization (HP -> kW, PSI -> bar)
-                         ↓
-STAGE 04 — Source Discrepancy Conflict Detection
-                         ↓
-STAGE 05 — AI Challenger Critique Stage
-                         ↓
-STAGE 06 — Engineering Physics Rule Validation (EV-001/EV-002)
-                         ↓
-STAGE 07 — Source Authority Precedence Resolution (SA-02)
-                         ↓
-STAGE 08 — Factual Trust Score & Risk Assessment
-                         ↓
-STAGE 09 — Exception-Driven HITL Review & SpecForensics
-                         ↓
-STAGE 10 — Commerce Readiness Gate & PIM Export (JSON/CSV)
+INGEST → EXTRACT → NORMALIZE → VALIDATE → CHALLENGE → RESOLVE → REVIEW → PUBLISH
 ```
 
 ---
 
-## 🌟 Hackathon Competition Innovations
+## 🌟 Client-Friendly Enterprise User Experience
 
-1. **SpecForge Control Center (Redesigned Overview)**:
-   - Hero: *"Stop bad product data before it reaches your catalog."*
-   - Catalog Health (TOTAL SKUs, READY, NEEDS REVIEW, BLOCKED) & AI Impact benchmarks.
-   - 🚨 **DECISIONS REQUIRING ATTENTION** displaying high-priority conflicts with direct `REVIEW` actions.
+1. **Intent-Based Landing Screen ("WHAT DO YOU WANT TO DO?")**:
+   - **Process Product Data**: Upload PDF/Image/CSV or paste URL for automated AI extraction & validation.
+   - **Review Issues**: Inspect products with specification conflicts, missing data or safety rule flags.
+   - **Check Suppliers**: Evaluate vendor catalog reliability scores & conflict rates.
+   - **View Catalog Health**: Monitor ready, review-required, and blocked product counts.
+   - **Manage Knowledge & Rules**: Configure product category schemas, physics validation rules & reference standards.
 
-2. **SpecForensics Module**:
-   - Turns specification conflicts into 10-second explainable investigations (Source A vs Source B vs Source C vs AI Extraction vs Engineering Validation vs Final Decision).
+2. **Primary Product Workflow (`+ PROCESS DATA`)**:
+   - **Add Product Data**: Clear choices (`Upload Document`, `Upload Spreadsheet`, `Product URL`, `Enter Manually`) + mandatory pre-submission explanation box (*"What happens next?"*).
+   - **Processing Experience**: Real-time progress visualization (`✓ Data received | ✓ Specifications extracted | ✓ Units normalized | ...`).
+   - **Analysis Complete**: Direct summary box with `VIEW PRODUCT ANALYSIS` action.
 
-3. **AI Challenger Stage & Visual Decision Trace**:
-   - Exposes explicit reasoning flow: `Extractor AI → Candidate Spec → AI Challenger → Engineering Validator → Authority Engine → Final Decision`.
+3. **Unified Product Detail View (Central Product Object)**:
+   - Consolidates all intelligence into one unified view (`ProductDetail.jsx`):
+     - **OVERVIEW**: Quick specs preview, verified fields count, issues flagged, risk level, recommended action CTA (`REVIEW ISSUE`).
+     - **SPECIFICATIONS**: Clean specs table with clear status badges (`✓ Verified`, `⚠ Conflict`, `! Missing`, `× Invalid`).
+     - **ISSUES & FORENSICS**: Unified SpecForensics multi-source comparison, AI Challenger critique, and resolution options (`Approve Value` / `Send for Human Review`).
+     - **EVIDENCE & GRAPH**: Document snippet evidence preview + interactive Evidence Graph.
+     - **RISK & TRUST**: Transparent 0–100 Factual Trust Score vs AI Confidence % + What-If Decision Simulator.
+     - **HISTORY & AUDIT**: Chronological product audit log.
 
-4. **Factual Trust Score vs AI Confidence**:
-   - Transparent 0–100 Trust Score highlighting **`AI CONFIDENCE ≠ FACTUAL TRUST`**.
+4. **Catalog Health Dashboard**:
+   - Answers *"Why are products blocked?"*, *"Which suppliers cause the most issues?"*, and *"What should we fix first?"*.
 
-5. **What-If Decision Simulator**:
-   - Simulates downstream consequences of approving conflicting attributes (*"What happens if we approve 380V instead of 415V?"*).
+5. **Client-Friendly Navigation**:
+   - Navigation Bar: `HOME`, `PRODUCTS`, `SUPPLIERS`, `REVIEW`, `KNOWLEDGE`, `ANALYTICS`, `AUDIT`, `SETTINGS` + Global Search & `+ PROCESS DATA` button.
+   - Replaces technical jargon (`Process Data`, `Needs Your Attention`, `Product Review`, `Publication Readiness`, `Knowledge & Rules`, `History & Audit`, `SpecForge Assistant`).
 
-6. **Business Impact Engine**:
-   - Translates data errors into business consequences (`DATA ISSUE → BUSINESS CONSEQUENCE → RECOMMENDED ACTION`).
-
-7. **Actionable Supplier Policies & Category Plugin Architecture**:
-   - Supplier recommendations with mandatory policy rules + visual category plugin scalability (`SpecForge Core → Motors, Pumps, Sensors, Valves, HVAC`).
-
-8. **Winning Demo Walkthrough (`▶ RUN WINNING DEMO`)**:
-   - 2–3 minute scripted operational workflow with clear next-step guidance so judges never wonder *"What am I supposed to click next?"*.
-
-9. **SpecForge Decision Copilot**:
-   - Action-oriented contextual assistant with prompt chips & inline action buttons (`Review`, `Filter`, `Open Evidence`, `Simulate Decision`).
-
-10. **Grouped Enterprise Navigation**:
-    - Grouped nav (**CONTROL CENTER, INTELLIGENCE, GOVERNANCE, INSIGHTS, SYSTEM**) with persistent `▶ RUN WINNING DEMO` CTA.
+6. **Usability & Security Controls**:
+   - Global search bar for SKUs, product names, and suppliers.
+   - Contextual breadcrumbs (`Products / MTR-204 / Issues / Voltage`).
+   - Inline `?` / `Explain` tooltips explaining technical terms.
+   - Trust & Security center detailing URL validation, SSRF protection, prompt sanitization, Zod schema validation, and audit trail logging.
 
 ---
 
 ## 🏆 Judging Criteria Alignment
 
-| Criteria | Implementation in SpecForge |
+| Criteria | Product Implementation in SpecForge |
 | :--- | :--- |
 | **Innovation** | Multimodal Gemini 2.0 extraction, SpecForensics conflict investigation, AI Challenger critique stage, Factual Trust Score vs AI Confidence, What-If decision simulator. |
 | **Technical Implementation** | Zod schema validation, deterministic unit normalizer, engineering physics rules, SSRF URL security guard, prompt sanitizer, helmet HTTP protections. |
-| **Business Relevance** | PIM-ready export center, Commerce Readiness gating, 85%+ manual review reduction, Business Impact ROI engine. |
+| **Business Relevance** | PIM-ready export center, Publication Readiness gating, 85%+ manual review reduction, Business Impact ROI engine. |
 | **Scalability** | Controlled concurrency batch processor (Concurrency: 3), Scale Simulator (100 to 100,000 SKUs), Category Plugin Architecture. |
 | **Overall Impact** | Transforms 3 days of manual spreadsheet cleanup into 1.4s automated AI governance per SKU record. |
 
