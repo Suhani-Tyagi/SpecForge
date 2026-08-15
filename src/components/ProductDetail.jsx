@@ -29,6 +29,17 @@ export default function ProductDetail({ product = DEMO_PRODUCTS[1], onToast }) {
     { attribute: "Phase / Frequency", value: "3 Phase / 50 Hz", status: "VERIFIED", symbol: "✓ Verified", source: "Nameplate Image" }
   ];
 
+  // Escape key handler for modal accessibility
+  React.useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && showConflictModal) {
+        setShowConflictModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showConflictModal]);
+
   return (
     <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6 font-sans">
       
@@ -276,14 +287,14 @@ export default function ProductDetail({ product = DEMO_PRODUCTS[1], onToast }) {
 
       {/* INTERACTIVE CONFLICT RESOLUTION MODAL */}
       {showConflictModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-title">
           <div className="glass-panel max-w-2xl w-full p-6 rounded-3xl border border-slate-800 space-y-6 font-sans">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center space-x-2 font-mono text-xs text-rose-400 font-bold">
-                <AlertOctagon className="w-5 h-5" />
+              <div className="flex items-center space-x-2 font-mono text-xs text-rose-400 font-bold" id="modal-title">
+                <AlertOctagon className="w-5 h-5" aria-hidden="true" />
                 <span>SPECFORENSICS CONFLICT INVESTIGATION</span>
               </div>
-              <button onClick={() => setShowConflictModal(false)} className="text-slate-400 hover:text-white text-xs font-bold">✕ Close</button>
+              <button onClick={() => setShowConflictModal(false)} aria-label="Close dialog" className="text-slate-400 hover:text-white text-xs font-bold">✕ Close</button>
             </div>
 
             <div className="space-y-3">

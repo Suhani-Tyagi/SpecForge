@@ -10,6 +10,11 @@ describe('Security & AI Protection Unit Tests', () => {
     expect(isSafeUrl('http://169.254.169.254/latest/meta-data/').safe).toBe(false);
     expect(isSafeUrl('http://10.0.0.1/internal').safe).toBe(false);
     expect(isSafeUrl('file:///etc/passwd').safe).toBe(false);
+    expect(isSafeUrl('http://[::1]/secret').safe).toBe(false);
+    expect(isSafeUrl('http://[::ffff:127.0.0.1]/secret').safe).toBe(false);
+    expect(isSafeUrl('http://0x7f000001/admin').safe).toBe(false);
+    expect(isSafeUrl('http://2130706433/admin').safe).toBe(false);
+    expect(isSafeUrl('http://017700000001/admin').safe).toBe(false);
   });
 
   it('should allow valid public HTTPS URLs', () => {

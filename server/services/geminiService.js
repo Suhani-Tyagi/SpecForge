@@ -32,14 +32,32 @@ class GeminiService {
   }
 
   /**
-   * Helper to safely parse JSON with markdown code fence stripping
+   * Helper to safely parse JSON with markdown code fence stripping and fallback regex extraction
    */
   parseJSONResponse(text) {
+    if (!text || typeof text !== 'string') {
+      throw new Error('Empty or non-string response from AI service');
+    }
     let clean = text.trim();
     if (clean.startsWith('```')) {
       clean = clean.replace(/^```(json)?\n?/, '').replace(/\n?```$/, '');
     }
-    return JSON.parse(clean);
+    try {
+      return JSON.parse(clean);
+    } catch (err) {
+      // Fallback: search for first { and last }
+      const firstBrace = clean.indexOf('{');
+      const lastBrace = clean.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace > firstBrace) {
+        const jsonSubstring = clean.substring(firstBrace, lastBrace + 1);
+        try {
+          return JSON.parse(jsonSubstring);
+        } catch (innerErr) {
+          throw new Error(`Failed to parse AI JSON response: ${innerErr.message}`);
+        }
+      }
+      throw new Error(`Failed to parse AI JSON response: ${err.message}`);
+    }
   }
 
   /**

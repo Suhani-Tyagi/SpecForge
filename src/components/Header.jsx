@@ -77,19 +77,19 @@ export default function Header({
                   AI Product Intelligence & Governance
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 font-medium font-sans hidden md:block">
-                Turn messy supplier information into trusted, commerce-ready product data.
-              </p>
             </div>
           </div>
 
           {/* Global Search Bar with Functional Results Dropdown */}
           <div className="flex-1 max-w-md relative hidden sm:block">
             <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+              <label htmlFor="global-search-input" className="sr-only">Global Search</label>
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2" aria-hidden="true" />
               <input
+                id="global-search-input"
                 type="text"
                 value={searchQuery}
+                aria-label="Search products, suppliers, SKUs or issues"
                 onChange={(e) => {
                   if (setSearchQuery) setSearchQuery(e.target.value);
                   setIsSearchOpen(true);
