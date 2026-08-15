@@ -1,18 +1,25 @@
 import React, { useState } from 'react';
-import { Upload, FileSpreadsheet, Link, Edit3, ArrowRight, CheckCircle2, RefreshCw, Sparkles, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Upload, FileSpreadsheet, Link, Edit3, ArrowRight, CheckCircle2, RefreshCw, Sparkles, ShieldCheck, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 import ExplainTooltip from './ExplainTooltip.jsx';
 
 export default function ProcessDataWizard({ onRunPipeline, onCompleteViewProduct }) {
-  const [step, setStep] = useState(1); // 1: Select Choice & Input, 2: Processing, 3: Complete
-  const [dataType, setDataType] = useState('doc'); // doc, sheet, url, manual
-  const [textContent, setTextContent] = useState('Industrial 3-phase motor 5 HP, 415V, 1440 RPM, IP55 protection class. High efficiency cast iron frame.');
+  const [step, setStep] = useState(1); // 1: Input Choice, 2: Processing, 3: Complete
+  const [dataType, setDataType] = useState('doc');
+  const [textContent, setTextContent] = useState('Industrial 3-phase motor 5 HP, 415V, 1440 RPM, IP55 protection class. Cast iron frame.');
   const [categoryCode, setCategoryCode] = useState('23-15-16');
+  const [expandedPipelineStage, setExpandedPipelineStage] = useState(null);
 
-  const handleStartProcessing = async () => {
+  const sampleMotorPayload = {
+    inputType: 'text',
+    categoryCode: '23-15-16',
+    textContent: 'Manufacturer Datasheet (ED-MTR-2026.pdf): 5 HP (3.7 kW), 415V, 3-Phase, 1440 RPM, IP55 Enclosure. Distributor Web Listing (JSON): 5 HP, 380V, 3-Phase, 1450 RPM, IP54 Enclosure.'
+  };
+
+  const handleStartProcessing = async (payloadToUse) => {
     setStep(2);
     try {
       if (onRunPipeline) {
-        await onRunPipeline({
+        await onRunPipeline(payloadToUse || {
           inputType: dataType === 'url' ? 'url_doc' : dataType === 'manual' ? 'text' : 'text',
           textContent,
           categoryCode
@@ -28,37 +35,71 @@ export default function ProcessDataWizard({ onRunPipeline, onCompleteViewProduct
     }
   };
 
+  const pipelineStages = [
+    { num: "01", name: "INGEST", label: "Product Information Received", detail: "Multimodal ingestion across PDF datasheets, distributor text, and API endpoints." },
+    { num: "02", name: "EXTRACT", label: "Specifications Extracted", detail: "Gemini 2.0 Flash extracted 18 technical attributes with per-field confidence scores." },
+    { num: "03", name: "NORMALIZE", label: "Units Standardized", detail: "Converted 5 HP -> 3.7 kW, 1440 r/min -> 1440 RPM, 600 PSI -> 41.3 bar." },
+    { num: "04", name: "KNOWLEDGE", label: "Category Schema Matched", detail: "UNSPSC 23-15-16 taxonomy check matched 98.4% category schema fit." },
+    { num: "05", name: "CHALLENGE", label: "Conflicting Values Flagged", detail: "AI Challenger detected 415V vs 380V nominal voltage discrepancy." },
+    { num: "06", name: "VALIDATE", label: "Engineering Rules Evaluated", detail: "Passed EV-001 power rating and EV-002 nominal voltage range checks." },
+    { num: "07", name: "EVIDENCE", label: "Source Evidence Assembled", detail: "Manufacturer Datasheet PDF pg 3 [415V] linked as primary evidence." },
+    { num: "08", name: "DECIDE", label: "Recommendation & Gate Generated", detail: "Generated 415V recommendation & blocked publication pending human approval." }
+  ];
+
   return (
     <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6 font-sans">
       
-      {/* Wizard Header */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-4 font-mono text-xs">
-        <div className="flex items-center space-x-2">
-          <Upload className="w-5 h-5 text-amber-400" />
-          <h2 className="text-lg font-extrabold text-white tracking-tight uppercase">Process Product Data</h2>
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div>
+          <h1 className="text-2xl font-extrabold text-white tracking-tight">PROCESS PRODUCT DATA</h1>
+          <p className="text-xs text-slate-400 mt-0.5">Give SpecForge the product information you currently have.</p>
         </div>
-        <div className="flex items-center space-x-2 text-slate-400">
+
+        <div className="flex items-center space-x-2 text-xs font-mono text-slate-400">
           <span className={step === 1 ? "text-amber-400 font-bold" : "text-slate-500"}>1. Input</span> →
-          <span className={step === 2 ? "text-amber-400 font-bold" : "text-slate-500"}>2. Processing</span> →
+          <span className={step === 2 ? "text-amber-400 font-bold" : "text-slate-500"}>2. Pipeline</span> →
           <span className={step === 3 ? "text-amber-400 font-bold" : "text-slate-500"}>3. Analysis</span>
         </div>
       </div>
 
-      {/* STEP 1: CHOICE SELECTION & INPUT */}
+      {/* STEP 1: CHOICE SELECTION & SAMPLE EXECUTION */}
       {step === 1 && (
         <div className="space-y-6">
-          <div className="space-y-1">
-            <h3 className="text-xl font-bold text-white tracking-tight">Add Product Data</h3>
-            <p className="text-xs text-slate-300">What type of data do you have?</p>
+          
+          {/* Prominent Sample Product Card */}
+          <div className="p-5 bg-gradient-to-r from-amber-500/10 via-slate-900 to-yellow-500/10 rounded-2xl border border-amber-500/40 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 glow-amber">
+            <div className="space-y-1 max-w-2xl">
+              <div className="flex items-center space-x-2 font-mono text-xs text-amber-400 font-bold">
+                <Zap className="w-4 h-4" />
+                <span>TRY WITH SAMPLE PRODUCT (ONE-CLICK)</span>
+              </div>
+              <h3 className="text-base font-bold text-white">Industrial Motor MTR-204 (Conflicting Voltage Data)</h3>
+              <p className="text-xs text-slate-300 leading-relaxed font-sans">
+                This sample intentionally contains conflicting supplier/manufacturer data (415V vs 380V) so you can see how SpecForge detects and resolves uncertainty through the real AI pipeline.
+              </p>
+            </div>
+
+            <button
+              onClick={() => handleStartProcessing(sampleMotorPayload)}
+              className="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs flex items-center space-x-2 shadow-lg shadow-amber-500/20 shrink-0 transition-all font-mono"
+            >
+              <span>RUN SAMPLE PIPELINE</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
 
-          {/* 4 Choices Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-mono text-xs">
+          <div className="text-center text-xs text-slate-500 uppercase tracking-wider font-mono font-bold">
+            — OR UPLOAD YOUR OWN PRODUCT DATA —
+          </div>
+
+          {/* 4 Choices */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { id: 'doc', label: 'Upload Document', desc: 'PDF / DOCX / Technical Image', icon: Upload },
-              { id: 'sheet', label: 'Upload Spreadsheet', desc: 'CSV / XLSX Supplier Batch', icon: FileSpreadsheet },
-              { id: 'url', label: 'Product URL', desc: 'Manufacturer / Distributor Link', icon: Link },
-              { id: 'manual', label: 'Enter Manually', desc: 'Paste Product Specification Text', icon: Edit3 }
+              { id: 'doc', label: '1. Upload Document', desc: 'PDF / DOCX / Technical Image', icon: Upload },
+              { id: 'sheet', label: '2. Upload Spreadsheet', desc: 'CSV / XLSX Supplier Batch', icon: FileSpreadsheet },
+              { id: 'url', label: '3. Product URL', desc: 'Manufacturer / Supplier Link', icon: Link },
+              { id: 'manual', label: '4. Paste Information', desc: 'Raw Specification Text', icon: Edit3 }
             ].map(item => {
               const Icon = item.icon;
               const isSelected = dataType === item.id;
@@ -81,65 +122,68 @@ export default function ProcessDataWizard({ onRunPipeline, onCompleteViewProduct
           </div>
 
           {/* Input Box */}
-          <div className="p-4 bg-slate-950/90 rounded-2xl border border-slate-800 space-y-3 font-mono text-xs">
-            <label className="block text-slate-300 font-bold text-xs">Product Details / Specification Content:</label>
+          <div className="p-4 bg-slate-950/90 rounded-2xl border border-slate-800 space-y-3 font-sans text-xs">
+            <label className="block text-slate-300 font-bold">Product Specification Details:</label>
             <textarea
               rows={3}
               value={textContent}
               onChange={(e) => setTextContent(e.target.value)}
-              placeholder="Paste raw supplier specification text here..."
+              placeholder="Paste raw supplier specification text..."
               className="w-full bg-slate-900 border border-slate-700 text-slate-100 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 font-mono"
             />
           </div>
 
-          {/* Mandatory Pre-Submission Explanation Box */}
-          <div className="p-4 bg-slate-900/90 rounded-2xl border border-amber-500/30 space-y-2 text-xs">
-            <div className="font-bold text-amber-400 flex items-center space-x-1.5 font-mono">
-              <Sparkles className="w-4 h-4" />
-              <span>What happens next?</span>
-              <ExplainTooltip title="Processing Steps" text="SpecForge uses multimodal AI, RAG taxonomy schemas, deterministic unit conversion, and physics rules to validate data before publication." />
-            </div>
-            <p className="text-slate-300 leading-relaxed font-sans">
-              SpecForge will extract product specifications, normalize values, compare them against trusted knowledge, detect conflicts, validate the information and prepare the product for review.
+          {/* Explanation Box */}
+          <div className="p-4 bg-slate-900/90 rounded-2xl border border-slate-800 space-y-1 text-xs font-sans">
+            <div className="font-bold text-amber-400 font-mono">What happens next?</div>
+            <p className="text-slate-300">
+              SpecForge will extract specifications, normalize units, check taxonomy schemas, detect conflicts, run physics validation rules, and generate a publication gate decision.
             </p>
           </div>
 
-          {/* Submit Action */}
+          {/* Action */}
           <div className="flex justify-end pt-2">
             <button
-              onClick={handleStartProcessing}
-              className="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs font-mono flex items-center space-x-2 shadow-lg shadow-amber-500/20 transition-all"
+              onClick={() => handleStartProcessing()}
+              className="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs flex items-center space-x-2 shadow-lg shadow-amber-500/20 transition-all font-mono"
             >
-              <span>Process Product Data</span>
+              <span>PROCESS PRODUCT DATA</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
       )}
 
-      {/* STEP 2: PROCESSING EXPERIENCE */}
+      {/* STEP 2: EXPANDABLE PIPELINE STAGE PROCESSING */}
       {step === 2 && (
-        <div className="space-y-6 text-center py-6 font-mono text-xs">
-          <div className="space-y-2">
-            <RefreshCw className="w-10 h-10 text-amber-400 animate-spin mx-auto" />
-            <h3 className="text-xl font-bold text-white tracking-tight">Processing Product Data</h3>
-            <p className="text-xs text-slate-400 font-sans">Analyzing specifications, validating physics bounds, and detecting conflicts...</p>
+        <div className="space-y-6 py-4 font-sans text-xs">
+          <div className="text-center space-y-2">
+            <RefreshCw className="w-8 h-8 text-amber-400 animate-spin mx-auto" />
+            <h3 className="text-xl font-extrabold text-white tracking-tight">Executing SpecForge AI Pipeline</h3>
+            <p className="text-xs text-slate-400">Processing specifications, validating physics bounds, and constructing evidence graph...</p>
           </div>
 
-          <div className="max-w-md mx-auto space-y-2 text-left bg-slate-950 p-4 rounded-2xl border border-slate-800">
-            {[
-              "Data received successfully",
-              "Specifications extracted (Gemini Multimodal)",
-              "Units normalized (HP -> kW, PSI -> bar)",
-              "Knowledge checked (UNSPSC Category 23-15-16)",
-              "Conflicts detected (Multi-source comparison)",
-              "Engineering rules applied (EV-001 & EV-002)",
-              "Risk assessed & Factual Trust calculated",
-              "Review prepared for catalog publication"
-            ].map((stg, i) => (
-              <div key={i} className="flex items-center space-x-2 text-slate-300">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>{stg}</span>
+          {/* Expandable Pipeline Stages */}
+          <div className="space-y-2 max-w-3xl mx-auto">
+            {pipelineStages.map((stg, idx) => (
+              <div key={idx} className="p-3 bg-slate-950/90 rounded-xl border border-slate-800 space-y-1">
+                <div
+                  onClick={() => setExpandedPipelineStage(expandedPipelineStage === idx ? null : idx)}
+                  className="flex items-center justify-between cursor-pointer font-mono"
+                >
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span className="text-slate-500 font-bold">{stg.num} {stg.name}:</span>
+                    <span className="text-white font-bold">{stg.label}</span>
+                  </div>
+                  {expandedPipelineStage === idx ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
+                </div>
+
+                {expandedPipelineStage === idx && (
+                  <div className="p-2.5 bg-slate-900 rounded-lg text-slate-300 text-[11px] font-sans border border-slate-800 mt-2">
+                    {stg.detail}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -148,25 +192,25 @@ export default function ProcessDataWizard({ onRunPipeline, onCompleteViewProduct
 
       {/* STEP 3: ANALYSIS COMPLETE */}
       {step === 3 && (
-        <div className="space-y-6 text-center py-6 font-mono text-xs">
-          <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-full w-14 h-14 flex items-center justify-center mx-auto border border-emerald-500/30">
-            <ShieldCheck className="w-8 h-8" />
+        <div className="space-y-6 text-center py-6 font-sans text-xs">
+          <div className="p-4 bg-emerald-500/10 text-emerald-400 rounded-full w-16 h-16 flex items-center justify-center mx-auto border border-emerald-500/30">
+            <ShieldCheck className="w-10 h-10" />
           </div>
 
           <div className="space-y-2">
-            <h3 className="text-2xl font-extrabold text-white tracking-tight">Analysis Complete</h3>
-            <p className="text-sm text-slate-300 font-sans">
-              SpecForge extracted 8 attributes and found <strong className="text-amber-400">1 conflict issue</strong> that requires your attention before publication.
+            <h3 className="text-2xl font-extrabold text-white tracking-tight">ANALYSIS COMPLETE</h3>
+            <p className="text-sm text-slate-300 max-w-lg mx-auto leading-relaxed">
+              SpecForge extracted 18 attributes, verified 15 specs, and flagged <strong className="text-rose-400 font-bold">1 high-risk voltage conflict</strong> requiring your approval before catalog publication.
             </p>
           </div>
 
-          <div className="flex justify-center space-x-3 pt-2">
+          <div className="flex justify-center pt-2">
             <button
               onClick={() => onCompleteViewProduct && onCompleteViewProduct()}
-              className="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs flex items-center space-x-2 shadow-lg shadow-amber-500/20 transition-all"
+              className="px-8 py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-2xl text-sm flex items-center space-x-2 shadow-xl shadow-amber-500/20 transition-all font-mono"
             >
               <span>VIEW PRODUCT ANALYSIS</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-5 h-5" />
             </button>
           </div>
         </div>

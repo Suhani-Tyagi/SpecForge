@@ -5,7 +5,6 @@ import ProcessDataWizard from './components/ProcessDataWizard.jsx';
 import ProductDetail from './components/ProductDetail.jsx';
 import NeedsYourAttention from './components/NeedsYourAttention.jsx';
 import CatalogHealth from './components/CatalogHealth.jsx';
-import Overview from './components/Overview.jsx';
 import ProductsExplorer from './components/ProductsExplorer.jsx';
 import CommerceOutputCenter from './components/CommerceOutputCenter.jsx';
 import SupplierIntelligence from './components/SupplierIntelligence.jsx';
@@ -66,6 +65,16 @@ export default function App() {
     }
   };
 
+  const handleTrySampleProduct = async () => {
+    const sampleMotorPayload = {
+      inputType: 'text',
+      categoryCode: '23-15-16',
+      textContent: 'Manufacturer Datasheet (ED-MTR-2026.pdf): 5 HP (3.7 kW), 415V, 3-Phase, 1440 RPM, IP55 Enclosure. Distributor Web Listing (JSON): 5 HP, 380V, 3-Phase, 1450 RPM, IP54 Enclosure.'
+    };
+    await handleRunPipeline(sampleMotorPayload);
+    setActiveTab('product_detail');
+  };
+
   const handleSelectProductForDetail = (productData) => {
     setSelectedProduct(productData);
     setActiveTab('product_detail');
@@ -75,11 +84,11 @@ export default function App() {
   const getBreadcrumbs = () => {
     if (activeTab === 'home') return [{ label: 'Home' }];
     if (activeTab === 'wizard') return [{ label: 'Home', onClick: () => setActiveTab('home') }, { label: 'Process Data' }];
-    if (activeTab === 'product_detail') return [{ label: 'Products', onClick: () => setActiveTab('products') }, { label: selectedProduct?.sku || 'Product Detail' }];
+    if (activeTab === 'product_detail') return [{ label: 'Products', onClick: () => setActiveTab('products') }, { label: selectedProduct?.sku || 'Product Analysis' }];
     if (activeTab === 'catalog_health') return [{ label: 'Home', onClick: () => setActiveTab('home') }, { label: 'Catalog Health' }];
     if (activeTab === 'products') return [{ label: 'Products' }];
     if (activeTab === 'suppliers') return [{ label: 'Suppliers' }];
-    if (activeTab === 'review') return [{ label: 'Review' }];
+    if (activeTab === 'review') return [{ label: 'Needs Attention' }];
     if (activeTab === 'knowledge') return [{ label: 'Knowledge & Rules' }];
     if (activeTab === 'analytics') return [{ label: 'Analytics' }];
     if (activeTab === 'audit') return [{ label: 'Audit' }];
@@ -93,7 +102,7 @@ export default function App() {
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
-      {/* Task-Oriented Navigation Header */}
+      {/* Task Navigation Header */}
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -102,29 +111,25 @@ export default function App() {
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         breadcrumbs={getBreadcrumbs()}
+        onSelectSearchResult={(res) => {
+          setSelectedProduct(DEMO_PRODUCTS[1]);
+          setActiveTab('product_detail');
+        }}
       />
 
-      {/* Main Content View Container */}
+      {/* Main Content Area */}
       <main className="flex-1 max-w-[1450px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         
-        {/* ROUTE 1: HOME (Intent Landing + Overview Control Center) */}
+        {/* ROUTE 1: HOME (Single Clean Landing View - No Overview Duplication) */}
         {activeTab === 'home' && (
-          <div className="space-y-8">
-            <HomeIntentPage
-              onStartProcessData={() => setActiveTab('wizard')}
-              onReviewIssues={() => setActiveTab('review')}
-              onCheckSuppliers={() => setActiveTab('suppliers')}
-              onViewCatalog={() => setActiveTab('catalog_health')}
-              onManageKnowledge={() => setActiveTab('knowledge')}
-            />
-            <Overview
-              onLaunchStudio={() => setActiveTab('wizard')}
-              onStartJudgeMode={() => setActiveTab('wizard')}
-              onRunDemo={() => setActiveTab('wizard')}
-              onSelectProductForReview={handleSelectProductForDetail}
-              onOpenForensics={() => setActiveTab('product_detail')}
-            />
-          </div>
+          <HomeIntentPage
+            onStartProcessData={() => setActiveTab('wizard')}
+            onTrySampleProduct={handleTrySampleProduct}
+            onReviewIssues={() => setActiveTab('review')}
+            onCheckSuppliers={() => setActiveTab('suppliers')}
+            onViewCatalog={() => setActiveTab('catalog_health')}
+            onManageKnowledge={() => setActiveTab('knowledge')}
+          />
         )}
 
         {/* ROUTE 2: PROCESS DATA WIZARD */}
@@ -143,12 +148,11 @@ export default function App() {
           </div>
         )}
 
-        {/* ROUTE 4: UNIFIED PRODUCT DETAIL (Central Object View) */}
+        {/* ROUTE 4: UNIFIED PRODUCT DETAIL (The Central Star View) */}
         {activeTab === 'product_detail' && (
           <ProductDetail
             product={selectedProduct}
             onToast={addToast}
-            onOpenReview={() => setActiveTab('review')}
           />
         )}
 
@@ -165,7 +169,7 @@ export default function App() {
           <SupplierIntelligence onToast={addToast} />
         )}
 
-        {/* ROUTE 7: REVIEW (Needs Your Attention Inbox + HITL UI) */}
+        {/* ROUTE 7: NEEDS ATTENTION (Inbox + Review UI) */}
         {activeTab === 'review' && (
           <div className="space-y-6">
             <NeedsYourAttention
@@ -198,12 +202,12 @@ export default function App() {
           <AnalyticsDashboard />
         )}
 
-        {/* ROUTE 10: AUDIT (History & Audit Timeline) */}
+        {/* ROUTE 10: AUDIT */}
         {activeTab === 'audit' && (
           <AuditTrail onToast={addToast} />
         )}
 
-        {/* ROUTE 11: SETTINGS (Settings & Security) */}
+        {/* ROUTE 11: SETTINGS */}
         {activeTab === 'settings' && (
           <div className="space-y-6">
             <TrustAndSecurity />
@@ -213,19 +217,19 @@ export default function App() {
 
       </main>
 
-      {/* Floating SpecForge Assistant */}
-      <div className="fixed bottom-6 right-6 z-30 font-mono">
+      {/* Context-Aware SpecForge Assistant */}
+      <div className="fixed bottom-6 right-6 z-30 font-sans">
         {!showAssistant ? (
           <button
             onClick={() => setShowAssistant(true)}
-            className="flex items-center space-x-2 px-4 py-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-extrabold rounded-full shadow-2xl hover:scale-105 transition-all text-xs border border-amber-300"
+            className="flex items-center space-x-2 px-4 py-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-extrabold rounded-full shadow-2xl hover:scale-105 transition-all text-xs border border-amber-300 font-mono"
           >
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-950 animate-ping"></span>
             <span>SpecForge Assistant</span>
           </button>
         ) : (
           <div className="w-[380px] sm:w-[480px] shadow-2xl rounded-2xl overflow-hidden border border-amber-500/40">
-            <div className="flex justify-end bg-slate-900 px-3 py-1 text-xs text-slate-400 border-b border-slate-800">
+            <div className="flex justify-end bg-slate-900 px-3 py-1 text-xs text-slate-400 border-b border-slate-800 font-mono">
               <button onClick={() => setShowAssistant(false)} className="hover:text-white font-bold">✕ Close Assistant</button>
             </div>
             <SpecForgeAssistant activeProduct={selectedProduct} onSelectTab={(t) => setActiveTab(t)} onToast={addToast} />
@@ -234,11 +238,11 @@ export default function App() {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800/80 bg-[#05080E] py-6 text-center text-xs font-mono text-slate-500">
+      <footer className="border-t border-slate-800/80 bg-[#05080E] py-6 text-center text-xs font-sans text-slate-500">
         <div className="max-w-[1450px] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>SPECForge — AI Product Intelligence & Governance</span>
-          <span className="text-amber-400 font-semibold">Turn messy supplier information into trusted, commerce-ready product data.</span>
-          <span>Enterprise Edition</span>
+          <span className="text-amber-400 font-semibold font-mono">Turn messy supplier information into trusted, commerce-ready product data.</span>
+          <span>Enterprise SaaS v2.0</span>
         </div>
       </footer>
 

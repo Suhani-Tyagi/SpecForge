@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Package, ShieldCheck, AlertTriangle, Lock, CheckCircle2, FileText, Scale, History, Network, ArrowRight, HelpCircle, Eye, AlertOctagon, XCircle } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, Lock, CheckCircle2, FileText, Scale, History, Network, ArrowRight, Eye, AlertOctagon, XCircle, Check } from 'lucide-react';
 import SpecForensics from './SpecForensics.jsx';
 import TrustScoreCard from './TrustScoreCard.jsx';
 import WhatIfSimulator from './WhatIfSimulator.jsx';
@@ -7,24 +7,32 @@ import EvidenceGraph from './EvidenceGraph.jsx';
 import ExplainTooltip from './ExplainTooltip.jsx';
 import { DEMO_PRODUCTS, FORENSICS_CASE } from '../data/demoDataset.js';
 
-export default function ProductDetail({ product = DEMO_PRODUCTS[1], onToast, onOpenReview }) {
+export default function ProductDetail({ product = DEMO_PRODUCTS[1], onToast }) {
   const [activeSubTab, setActiveSubTab] = useState('overview'); // overview, specs, issues, evidence, risk, history
+  const [isConflictResolved, setIsConflictResolved] = useState(false);
+  const [showConflictModal, setShowConflictModal] = useState(false);
 
-  const readiness = product?.commerceReadiness || { completeness: 88, confidence: 81, blockingIssues: ["Voltage discrepancy (415V vs 380V)"] };
-  const isReady = product?.commerceStatus === 'READY' || readiness.blockingIssues.length === 0;
+  const isReady = isConflictResolved || product?.commerceStatus === 'READY';
+  const readinessScore = isReady ? 100 : 81;
+
+  const handleApproveConflict = () => {
+    setIsConflictResolved(true);
+    setShowConflictModal(false);
+    if (onToast) onToast('Nominal Voltage set to 415 V (Human Approved). Product is now READY TO PUBLISH!', 'success');
+  };
 
   const specRows = [
     { attribute: "Rated Power", value: "3.7 kW (5 HP)", status: "VERIFIED", symbol: "✓ Verified", source: "Manufacturer Datasheet (pg 2)" },
-    { attribute: "Nominal Voltage", value: "415 V (Datasheet) vs 380 V (Web)", status: "CONFLICT", symbol: "⚠ Conflict", source: "3 Competing Sources" },
+    { attribute: "Nominal Voltage", value: isConflictResolved ? "415 V (Human Approved)" : "415 V (Datasheet) vs 380 V (Web)", status: isConflictResolved ? "VERIFIED" : "CONFLICT", symbol: isConflictResolved ? "✓ Verified" : "⚠ Conflict", source: isConflictResolved ? "Human Approval SA-02" : "3 Competing Sources" },
     { attribute: "Synchronous Speed", value: "1440 RPM", status: "VERIFIED", symbol: "✓ Verified", source: "Manufacturer Datasheet (pg 2)" },
     { attribute: "Protection Class", value: "IP55", status: "VERIFIED", symbol: "✓ Verified", source: "Nameplate Image" },
-    { attribute: "Operating Temperature", value: "MISSING", status: "MISSING", symbol: "! Missing", source: "N/A" }
+    { attribute: "Phase / Frequency", value: "3 Phase / 50 Hz", status: "VERIFIED", symbol: "✓ Verified", source: "Nameplate Image" }
   ];
 
   return (
     <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6 font-sans">
       
-      {/* Product Top Header */}
+      {/* Top Header & Publication Status */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
         <div className="space-y-1">
           <div className="flex items-center space-x-2 text-xs font-mono text-slate-400">
@@ -36,20 +44,20 @@ export default function ProductDetail({ product = DEMO_PRODUCTS[1], onToast, onO
           <h1 className="text-2xl font-extrabold text-white tracking-tight">{product.name}</h1>
         </div>
 
-        {/* Publication Readiness Status */}
-        <div className="flex items-center space-x-3 shrink-0 font-mono">
+        {/* Publication Readiness Badge */}
+        <div className="flex items-center space-x-4 shrink-0 font-sans">
           <div className="text-right">
-            <div className="text-[10px] text-slate-400 uppercase flex items-center justify-end space-x-1">
+            <div className="text-[10px] text-slate-400 uppercase flex items-center justify-end space-x-1 font-mono">
               <span>Publication Readiness</span>
               <ExplainTooltip title="Publication Readiness" text="Automated compliance score calculating completeness, unit validation, and conflict resolution before catalog export." />
             </div>
-            <div className="text-lg font-extrabold text-white">{readiness.completeness}% Ready</div>
+            <div className="text-lg font-extrabold text-white font-mono">{readinessScore}% Ready</div>
           </div>
 
-          <span className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 border shadow-lg ${
+          <span className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center space-x-2 border shadow-lg ${
             isReady 
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-emerald-500/10'
-              : 'bg-rose-500/10 text-rose-400 border-rose-500/30 shadow-rose-500/10'
+              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/40 shadow-emerald-500/10'
+              : 'bg-rose-500/10 text-rose-400 border-rose-500/40 shadow-rose-500/10'
           }`}>
             {isReady ? <CheckCircle2 className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
             <span>{isReady ? 'READY TO PUBLISH' : 'NEEDS REVIEW'}</span>
@@ -57,12 +65,12 @@ export default function ProductDetail({ product = DEMO_PRODUCTS[1], onToast, onO
         </div>
       </div>
 
-      {/* Unified Sub-Tabs Navigation */}
-      <div className="flex items-center space-x-1 border-b border-slate-800 pb-2 overflow-x-auto font-mono text-xs">
+      {/* Sub-Navigation Tabs */}
+      <div className="flex items-center space-x-1 border-b border-slate-800 pb-2 overflow-x-auto text-xs font-mono">
         {[
           { id: 'overview', label: 'OVERVIEW' },
           { id: 'specs', label: 'SPECIFICATIONS' },
-          { id: 'issues', label: 'ISSUES & FORENSICS', count: 1 },
+          { id: 'issues', label: 'ISSUES & FORENSICS', count: isConflictResolved ? 0 : 1 },
           { id: 'evidence', label: 'EVIDENCE & GRAPH' },
           { id: 'risk', label: 'RISK & TRUST' },
           { id: 'history', label: 'HISTORY & AUDIT' }
@@ -86,83 +94,76 @@ export default function ProductDetail({ product = DEMO_PRODUCTS[1], onToast, onO
         ))}
       </div>
 
-      {/* SUBTAB 1: OVERVIEW */}
+      {/* OVERVIEW SUBTAB */}
       {activeSubTab === 'overview' && (
-        <div className="space-y-6 font-mono text-xs">
+        <div className="space-y-6">
           
-          {/* Summary Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="p-4 bg-slate-950/80 rounded-xl border border-slate-800">
-              <div className="text-[10px] text-slate-500 uppercase font-bold">Verified Specs</div>
-              <div className="text-xl font-extrabold text-emerald-400 mt-0.5">18 Fields</div>
+          {/* SECTION 1: WHAT NEEDS YOUR ATTENTION? */}
+          <div className="space-y-3">
+            <div className="text-slate-300 font-extrabold text-xs uppercase font-mono tracking-wider flex items-center space-x-1.5">
+              <AlertTriangle className="w-4 h-4 text-amber-400" />
+              <span>WHAT NEEDS YOUR ATTENTION?</span>
             </div>
 
-            <div className="p-4 bg-slate-950/80 rounded-xl border border-amber-500/30">
-              <div className="text-[10px] text-slate-500 uppercase font-bold text-amber-400">Issues Flagged</div>
-              <div className="text-xl font-extrabold text-amber-400 mt-0.5">1 Conflict</div>
-            </div>
+            {!isConflictResolved ? (
+              <div className="p-5 bg-rose-500/10 rounded-2xl border border-rose-500/40 space-y-4 flex flex-col md:flex-row md:items-center justify-between gap-4 glow-rose">
+                <div className="space-y-1">
+                  <div className="flex items-center space-x-2 font-mono text-xs text-rose-400 font-bold">
+                    <AlertOctagon className="w-4 h-4" />
+                    <span>HIGH-RISK SPECIFICATION CONFLICT</span>
+                  </div>
+                  <h3 className="text-base font-bold text-white">Nominal Voltage Discrepancy</h3>
+                  <p className="text-xs text-slate-300 font-sans">
+                    Manufacturer Datasheet specifies <strong className="text-emerald-400">415 V</strong>, while Supplier Web Portal text claims <strong className="text-rose-400">380 V</strong>.
+                  </p>
+                </div>
 
-            <div className="p-4 bg-slate-950/80 rounded-xl border border-cyan-500/30">
-              <div className="text-[10px] text-slate-500 uppercase font-bold">Evidence Sources</div>
-              <div className="text-xl font-extrabold text-cyan-400 mt-0.5">3 Documents</div>
-            </div>
-
-            <div className="p-4 bg-slate-950/80 rounded-xl border border-rose-500/30">
-              <div className="text-[10px] text-slate-500 uppercase font-bold text-rose-400">Risk Score</div>
-              <div className="text-xl font-extrabold text-rose-400 mt-0.5">68 / 100</div>
-            </div>
+                <button
+                  onClick={() => setShowConflictModal(true)}
+                  className="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs flex items-center space-x-1.5 shadow-lg shadow-amber-500/20 shrink-0 transition-all font-mono"
+                >
+                  <span>REVIEW CONFLICT</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="p-4 bg-emerald-500/10 rounded-2xl border border-emerald-500/30 text-emerald-300 text-xs font-sans flex items-center space-x-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                <span>All specification issues have been resolved. Product is ready for catalog export.</span>
+              </div>
+            )}
           </div>
 
-          {/* Recommended Next Action Banner */}
-          {!isReady && (
-            <div className="p-4 bg-amber-500/10 rounded-2xl border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-amber-200">
-              <div>
-                <div className="font-extrabold text-amber-400 text-sm flex items-center space-x-1.5">
-                  <AlertTriangle className="w-4 h-4" />
-                  <span>RECOMMENDED NEXT ACTION</span>
-                </div>
-                <p className="text-xs text-slate-300 font-sans mt-0.5">
-                  Resolve the nominal voltage discrepancy (415V vs 380V) before publishing this product to the PIM catalog.
-                </p>
-              </div>
-
-              <button
-                onClick={() => setActiveSubTab('issues')}
-                className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs flex items-center space-x-1.5 shadow-md shadow-amber-500/20 transition-all shrink-0"
-              >
-                <span>REVIEW ISSUE</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+          {/* SECTION 2: WHAT IS ALREADY TRUSTWORTHY? */}
+          <div className="space-y-3">
+            <div className="text-slate-300 font-extrabold text-xs uppercase font-mono tracking-wider flex items-center space-x-1.5">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span>WHAT IS ALREADY TRUSTWORTHY?</span>
             </div>
-          )}
 
-          {/* Embedded Quick Specs Table Preview */}
-          <div className="space-y-2">
-            <div className="text-slate-400 uppercase tracking-wider text-[11px] font-bold">Quick Specifications Preview:</div>
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse border border-slate-800">
+              <table className="w-full text-left border-collapse border border-slate-800 text-xs">
                 <thead>
-                  <tr className="border-b border-slate-800 text-slate-400 uppercase text-[10px] bg-slate-900">
+                  <tr className="border-b border-slate-800 text-slate-400 uppercase text-[10px] bg-slate-900 font-mono">
                     <th className="py-2.5 px-3">Attribute</th>
-                    <th className="py-2.5 px-3">Extracted Value</th>
+                    <th className="py-2.5 px-3">Verified Value</th>
                     <th className="py-2.5 px-3">Status</th>
                     <th className="py-2.5 px-3">Primary Source</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-slate-800 font-sans">
                   {specRows.map((r, i) => (
                     <tr key={i} className="hover:bg-slate-800/30">
-                      <td className="py-2.5 px-3 font-bold text-slate-200">{r.attribute}</td>
-                      <td className="py-2.5 px-3 text-white">{r.value}</td>
+                      <td className="py-2.5 px-3 font-bold text-slate-200 font-mono">{r.attribute}</td>
+                      <td className="py-2.5 px-3 text-white font-bold">{r.value}</td>
                       <td className="py-2.5 px-3">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          r.status === 'VERIFIED' ? 'bg-emerald-500/10 text-emerald-400' :
-                          r.status === 'CONFLICT' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-amber-500/10 text-amber-400'
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
+                          r.status === 'VERIFIED' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
                         }`}>
                           {r.symbol}
                         </span>
                       </td>
-                      <td className="py-2.5 px-3 text-slate-400 text-[11px]">{r.source}</td>
+                      <td className="py-2.5 px-3 text-slate-400 text-[11px] font-mono">{r.source}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -170,42 +171,80 @@ export default function ProductDetail({ product = DEMO_PRODUCTS[1], onToast, onO
             </div>
           </div>
 
+          {/* SECTION 3: PUBLICATION GATE */}
+          <div className="p-5 bg-slate-950 rounded-2xl border border-slate-800 space-y-4 font-sans text-xs">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3 font-mono">
+              <span className="font-extrabold text-white text-xs uppercase tracking-wider flex items-center space-x-2">
+                <Lock className="w-4 h-4 text-amber-400" />
+                <span>PUBLICATION GATE CHECKLIST</span>
+              </span>
+              <span className={`px-3 py-1 rounded text-xs font-bold ${
+                isReady ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
+              }`}>
+                {isReady ? '🟢 READY TO PUBLISH' : '🔒 BLOCKED UNTIL REVIEW'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 font-mono text-[11px]">
+              <div className="p-3 bg-slate-900 rounded-xl border border-emerald-500/30 text-emerald-400 flex items-center justify-between">
+                <span>Specifications Extracted</span>
+                <Check className="w-4 h-4" />
+              </div>
+              <div className="p-3 bg-slate-900 rounded-xl border border-emerald-500/30 text-emerald-400 flex items-center justify-between">
+                <span>Category Schema Match</span>
+                <Check className="w-4 h-4" />
+              </div>
+              <div className="p-3 bg-slate-900 rounded-xl border border-emerald-500/30 text-emerald-400 flex items-center justify-between">
+                <span>Physics EV-002 Check</span>
+                <Check className="w-4 h-4" />
+              </div>
+              <div className={`p-3 bg-slate-900 rounded-xl border flex items-center justify-between ${
+                isReady ? 'border-emerald-500/30 text-emerald-400' : 'border-rose-500/30 text-rose-400'
+              }`}>
+                <span>Conflict Resolution</span>
+                {isReady ? <Check className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+              </div>
+              <div className={`p-3 bg-slate-900 rounded-xl border flex items-center justify-between ${
+                isReady ? 'border-emerald-500/30 text-emerald-400' : 'border-rose-500/30 text-rose-400'
+              }`}>
+                <span>Human Approval</span>
+                {isReady ? <Check className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+              </div>
+              <div className="p-3 bg-slate-900 rounded-xl border border-emerald-500/30 text-emerald-400 flex items-center justify-between">
+                <span>PIM Export Payload</span>
+                <Check className="w-4 h-4" />
+              </div>
+            </div>
+          </div>
+
         </div>
       )}
 
-      {/* SUBTAB 2: SPECIFICATIONS */}
+      {/* OTHER SUBTABS */}
       {activeSubTab === 'specs' && (
-        <div className="space-y-4 font-mono text-xs">
-          <div className="flex items-center justify-between text-slate-400 border-b border-slate-800 pb-2">
-            <span className="font-bold">Extracted Product Specifications:</span>
-            <span>Total 18 Attributes</span>
-          </div>
-
+        <div className="space-y-3 font-sans text-xs">
           <table className="w-full text-left border-collapse border border-slate-800">
             <thead>
-              <tr className="border-b border-slate-800 text-slate-400 uppercase text-[10px] bg-slate-900">
+              <tr className="border-b border-slate-800 text-slate-400 uppercase text-[10px] bg-slate-900 font-mono">
                 <th className="py-2.5 px-3">Attribute Name</th>
-                <th className="py-2.5 px-3">Extracted Value</th>
-                <th className="py-2.5 px-3">Normalized Value</th>
+                <th className="py-2.5 px-3">Value</th>
                 <th className="py-2.5 px-3">Status</th>
                 <th className="py-2.5 px-3">Source Lineage</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-slate-800 font-sans">
               {specRows.map((r, i) => (
                 <tr key={i} className="hover:bg-slate-800/30">
-                  <td className="py-2.5 px-3 font-bold text-slate-200">{r.attribute}</td>
-                  <td className="py-2.5 px-3 text-white">{r.value}</td>
-                  <td className="py-2.5 px-3 text-amber-300 font-bold">{r.value}</td>
+                  <td className="py-2.5 px-3 font-bold text-slate-200 font-mono">{r.attribute}</td>
+                  <td className="py-2.5 px-3 text-white font-bold">{r.value}</td>
                   <td className="py-2.5 px-3">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      r.status === 'VERIFIED' ? 'bg-emerald-500/10 text-emerald-400' :
-                      r.status === 'CONFLICT' ? 'bg-rose-500/10 text-rose-400' : 'bg-amber-500/10 text-amber-400'
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
+                      r.status === 'VERIFIED' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'
                     }`}>
                       {r.symbol}
                     </span>
                   </td>
-                  <td className="py-2.5 px-3 text-slate-400 text-[11px]">{r.source}</td>
+                  <td className="py-2.5 px-3 text-slate-400 text-[11px] font-mono">{r.source}</td>
                 </tr>
               ))}
             </tbody>
@@ -213,17 +252,14 @@ export default function ProductDetail({ product = DEMO_PRODUCTS[1], onToast, onO
         </div>
       )}
 
-      {/* SUBTAB 3: ISSUES & FORENSICS */}
       {activeSubTab === 'issues' && (
-        <SpecForensics forensicData={FORENSICS_CASE} onSelectForReview={onOpenReview} />
+        <SpecForensics forensicData={FORENSICS_CASE} onSelectForReview={() => setShowConflictModal(true)} />
       )}
 
-      {/* SUBTAB 4: EVIDENCE & GRAPH */}
       {activeSubTab === 'evidence' && (
         <EvidenceGraph product={product} />
       )}
 
-      {/* SUBTAB 5: RISK & TRUST */}
       {activeSubTab === 'risk' && (
         <div className="space-y-6">
           <TrustScoreCard product={product} />
@@ -231,11 +267,67 @@ export default function ProductDetail({ product = DEMO_PRODUCTS[1], onToast, onO
         </div>
       )}
 
-      {/* SUBTAB 6: HISTORY & AUDIT */}
       {activeSubTab === 'history' && (
         <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 font-mono text-xs space-y-2">
           <div className="text-amber-400 font-bold">Product Audit Lineage Timeline:</div>
-          <p className="text-slate-400">Ingested on 2026-08-15 14:20:12 • AI Extraction (Gemini 2.0 Flash) • Unit Normalization Complete • Flagged for Human Review.</p>
+          <p className="text-slate-400">Ingested on 2026-08-15 14:20:12 • Multimodal AI Extraction • Unit Normalization Complete {isConflictResolved ? '• Human Approved 415V by Domain Expert' : '• Flagged for Conflict Resolution'}.</p>
+        </div>
+      )}
+
+      {/* INTERACTIVE CONFLICT RESOLUTION MODAL */}
+      {showConflictModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="glass-panel max-w-2xl w-full p-6 rounded-3xl border border-slate-800 space-y-6 font-sans">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center space-x-2 font-mono text-xs text-rose-400 font-bold">
+                <AlertOctagon className="w-5 h-5" />
+                <span>SPECFORENSICS CONFLICT INVESTIGATION</span>
+              </div>
+              <button onClick={() => setShowConflictModal(false)} className="text-slate-400 hover:text-white text-xs font-bold">✕ Close</button>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-lg font-bold text-white">Nominal Voltage Discrepancy (415 V vs 380 V)</h3>
+              
+              <div className="grid grid-cols-3 gap-2 font-mono text-xs">
+                <div className="p-3 bg-slate-900 rounded-xl border border-emerald-500/30">
+                  <div className="text-[10px] text-slate-500">Source A (Datasheet)</div>
+                  <div className="text-emerald-400 font-bold mt-1">415 V</div>
+                </div>
+                <div className="p-3 bg-slate-900 rounded-xl border border-rose-500/30">
+                  <div className="text-[10px] text-slate-500">Source B (Supplier Web)</div>
+                  <div className="text-rose-400 font-bold mt-1">380 V</div>
+                </div>
+                <div className="p-3 bg-slate-900 rounded-xl border border-cyan-500/30">
+                  <div className="text-[10px] text-slate-500">Source C (Nameplate)</div>
+                  <div className="text-cyan-400 font-bold mt-1">415 V</div>
+                </div>
+              </div>
+
+              <div className="p-3 bg-slate-900 rounded-xl text-xs space-y-1">
+                <div className="font-bold text-amber-400 font-mono">SpecForge AI Challenger & Authority Analysis:</div>
+                <p className="text-slate-300">
+                  Manufacturer Datasheet PDF (Weight: 1.0) and Physical Nameplate Image (Weight: 0.9) both verify 415 V. The 380 V value comes from an unverified distributor portal text block. Engineering Rule EV-002 verifies 415 V matches standard 5HP 3-phase motor configurations.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end space-x-3 pt-2 font-mono text-xs">
+              <button
+                onClick={() => setShowConflictModal(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700"
+              >
+                Escalate for Deep Review
+              </button>
+              <button
+                onClick={handleApproveConflict}
+                className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl shadow-lg shadow-amber-500/20 flex items-center space-x-1.5"
+              >
+                <Check className="w-4 h-4" />
+                <span>ACCEPT 415 V (APPROVE)</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
