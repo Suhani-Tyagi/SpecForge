@@ -6,6 +6,9 @@ import DemoScenarios from './components/DemoScenarios.jsx';
 import PipelineVisualizer from './components/PipelineVisualizer.jsx';
 import ReviewUI from './components/ReviewUI.jsx';
 import BatchProcessor from './components/BatchProcessor.jsx';
+import SpecForensics from './components/SpecForensics.jsx';
+import AIChallenger from './components/AIChallenger.jsx';
+import DecisionTrace from './components/DecisionTrace.jsx';
 import AIAttentionQueue from './components/AIAttentionQueue.jsx';
 import RiskIntelligence from './components/RiskIntelligence.jsx';
 import CommerceReadinessCenter from './components/CommerceReadinessCenter.jsx';
@@ -17,6 +20,7 @@ import CategoryIntelligence from './components/CategoryIntelligence.jsx';
 import AnalyticsDashboard from './components/AnalyticsDashboard.jsx';
 import AuditTrail from './components/AuditTrail.jsx';
 import EvidenceGraph from './components/EvidenceGraph.jsx';
+import TrustAndSecurity from './components/TrustAndSecurity.jsx';
 import SettingsAndIntegrations from './components/SettingsAndIntegrations.jsx';
 import AICopilot from './components/AICopilot.jsx';
 import JudgeMode from './components/JudgeMode.jsx';
@@ -24,10 +28,10 @@ import ToastContainer from './components/Toast.jsx';
 
 import { usePipeline } from './hooks/usePipeline.js';
 import { useToast } from './hooks/useToast.js';
-import { DEMO_PRODUCTS } from './data/demoDataset.js';
+import { DEMO_PRODUCTS, FORENSICS_CASE } from './data/demoDataset.js';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('overview'); // overview, studio, queue, products, suppliers, kb, analytics, audit, settings
+  const [activeTab, setActiveTab] = useState('overview'); // overview, studio, products, suppliers, forensics, queue, audit, analytics, kb, security, settings
   const [isJudgeModeOpen, setIsJudgeModeOpen] = useState(false);
   const [showCopilot, setShowCopilot] = useState(false);
   
@@ -90,7 +94,7 @@ export default function App() {
       {/* Toast Notification Container */}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
-      {/* Competition Judge Mode Modal */}
+      {/* Winning Demo Walkthrough Modal */}
       {isJudgeModeOpen && (
         <JudgeMode
           onClose={() => setIsJudgeModeOpen(false)}
@@ -108,19 +112,20 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-[1400px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <main className="flex-1 max-w-[1450px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         
-        {/* TAB 1: EXECUTIVE OVERVIEW */}
+        {/* TAB 1: SPECFORGE CONTROL CENTER */}
         {activeTab === 'overview' && (
           <Overview
             onLaunchStudio={() => setActiveTab('studio')}
             onStartJudgeMode={() => setIsJudgeModeOpen(true)}
             onRunDemo={handleRunDemo}
             onSelectProductForReview={handleSelectProductForReview}
+            onOpenForensics={() => setActiveTab('forensics')}
           />
         )}
 
-        {/* TAB 2: INTELLIGENCE STUDIO */}
+        {/* TAB 2: INGESTION STUDIO */}
         {activeTab === 'studio' && (
           <div className="space-y-6">
             <IntakeModule
@@ -148,7 +153,29 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 3: REVIEW QUEUE (AI Attention Queue + HITL Review UI) */}
+        {/* TAB 3: PRODUCTS CATALOG */}
+        {activeTab === 'products' && (
+          <div className="space-y-6">
+            <ProductsExplorer onSelectProductForReview={handleSelectProductForReview} />
+            <CommerceOutputCenter product={reviewProduct} onToast={addToast} />
+          </div>
+        )}
+
+        {/* TAB 4: SUPPLIER SCORES */}
+        {activeTab === 'suppliers' && (
+          <SupplierIntelligence onToast={addToast} />
+        )}
+
+        {/* TAB 5: SPECFORENSICS CONFLICT INVESTIGATION */}
+        {activeTab === 'forensics' && (
+          <div className="space-y-6">
+            <SpecForensics forensicData={FORENSICS_CASE} onSelectForReview={() => setActiveTab('queue')} />
+            <AIChallenger />
+            <DecisionTrace product={reviewProduct} />
+          </div>
+        )}
+
+        {/* TAB 6: REVIEW QUEUE (AI Attention Queue + HITL Review UI) */}
         {activeTab === 'queue' && (
           <div className="space-y-6">
             <AIAttentionQueue
@@ -170,20 +197,20 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 4: PRODUCTS EXPLORER */}
-        {activeTab === 'products' && (
+        {/* TAB 7: AUDIT TRAIL & LINEAGE */}
+        {activeTab === 'audit' && (
           <div className="space-y-6">
-            <ProductsExplorer onSelectProductForReview={handleSelectProductForReview} />
-            <CommerceOutputCenter product={reviewProduct} onToast={addToast} />
+            <AuditTrail onToast={addToast} />
+            <EvidenceGraph product={reviewProduct} />
           </div>
         )}
 
-        {/* TAB 5: SUPPLIERS */}
-        {activeTab === 'suppliers' && (
-          <SupplierIntelligence />
+        {/* TAB 8: ANALYTICS */}
+        {activeTab === 'analytics' && (
+          <AnalyticsDashboard />
         )}
 
-        {/* TAB 6: KNOWLEDGE BASE */}
+        {/* TAB 9: KNOWLEDGE BASE */}
         {activeTab === 'kb' && (
           <div className="space-y-6">
             <KnowledgeBaseExplorer
@@ -195,52 +222,44 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 7: ANALYTICS */}
-        {activeTab === 'analytics' && (
-          <AnalyticsDashboard />
+        {/* TAB 10: TRUST & SECURITY CENTER */}
+        {activeTab === 'security' && (
+          <TrustAndSecurity />
         )}
 
-        {/* TAB 8: AUDIT TRAIL */}
-        {activeTab === 'audit' && (
-          <div className="space-y-6">
-            <AuditTrail onToast={addToast} />
-            <EvidenceGraph product={reviewProduct} />
-          </div>
-        )}
-
-        {/* TAB 9: SETTINGS & SYSTEM STATUS */}
+        {/* TAB 11: SETTINGS */}
         {activeTab === 'settings' && (
           <SettingsAndIntegrations />
         )}
 
       </main>
 
-      {/* Floating Ask SpecForge Copilot Toggle */}
-      <div className="fixed bottom-6 right-6 z-30">
+      {/* Floating SpecForge Decision Copilot Toggle */}
+      <div className="fixed bottom-6 right-6 z-30 font-mono">
         {!showCopilot ? (
           <button
             onClick={() => setShowCopilot(true)}
-            className="flex items-center space-x-2 px-4 py-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-extrabold rounded-full shadow-2xl hover:scale-105 transition-all text-xs font-mono border border-amber-300"
+            className="flex items-center space-x-2 px-4 py-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-extrabold rounded-full shadow-2xl hover:scale-105 transition-all text-xs border border-amber-300"
           >
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-950 animate-ping"></span>
-            <span>Ask SpecForge AI</span>
+            <span>SpecForge Decision Copilot</span>
           </button>
         ) : (
-          <div className="w-[380px] sm:w-[460px] shadow-2xl rounded-2xl overflow-hidden border border-amber-500/40">
-            <div className="flex justify-end bg-slate-900 px-3 py-1 text-xs font-mono border-b border-slate-800">
-              <button onClick={() => setShowCopilot(false)} className="text-slate-400 hover:text-white">✕ Close Copilot</button>
+          <div className="w-[380px] sm:w-[480px] shadow-2xl rounded-2xl overflow-hidden border border-amber-500/40">
+            <div className="flex justify-end bg-slate-900 px-3 py-1 text-xs text-slate-400 border-b border-slate-800">
+              <button onClick={() => setShowCopilot(false)} className="hover:text-white font-bold">✕ Close Copilot</button>
             </div>
-            <AICopilot activeProduct={reviewProduct} onToast={addToast} />
+            <AICopilot activeProduct={reviewProduct} onSelectTab={(t) => setActiveTab(t)} onToast={addToast} />
           </div>
         )}
       </div>
 
       {/* Footer */}
       <footer className="border-t border-slate-800/80 bg-[#05080E] py-6 text-center text-xs font-mono text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>SpecForge — Industrial Product Intelligence Layer</span>
+        <div className="max-w-[1450px] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <span>SpecForge — Industrial Product Intelligence & Governance Layer</span>
           <span className="text-amber-400 font-semibold">Multimodal AI + RAG + Engineering Rules + HITL Governance</span>
-          <span>Enterprise Competition Edition v1.2</span>
+          <span>Competition Edition v2.0</span>
         </div>
       </footer>
 

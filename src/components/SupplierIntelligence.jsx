@@ -1,32 +1,42 @@
-import React from 'react';
-import { Building2, Award, AlertTriangle, ShieldCheck, TrendingUp, Filter } from 'lucide-react';
+import React, { useState } from 'react';
+import { Building2, Award, AlertTriangle, ShieldCheck, TrendingUp, Filter, PlusCircle, CheckCircle2 } from 'lucide-react';
 import { SUPPLIER_METRICS } from '../data/demoDataset.js';
 
-export default function SupplierIntelligence() {
+export default function SupplierIntelligence({ onToast }) {
+  const [createdPolicies, setCreatedPolicies] = useState([]);
+
+  const handleCreatePolicy = (supplier) => {
+    const newPolicy = `${supplier.name}: ${supplier.policyRule || 'MANDATORY_VERIFICATION'}`;
+    if (!createdPolicies.includes(newPolicy)) {
+      setCreatedPolicies(prev => [...prev, newPolicy]);
+      if (onToast) onToast(`Policy rule created for ${supplier.name}: ${supplier.policyRule}`, 'success');
+    }
+  };
+
   return (
-    <div className="glass-panel p-6 rounded-2xl border border-slate-800 space-y-6">
+    <div className="glass-panel p-6 rounded-2xl border border-slate-800 space-y-6 font-mono text-xs">
       
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
         <div>
           <div className="flex items-center space-x-2">
             <Building2 className="w-5 h-5 text-amber-400" />
-            <h2 className="text-lg font-extrabold text-white tracking-tight">SUPPLIER QUALITY INTELLIGENCE</h2>
+            <h2 className="text-lg font-extrabold text-white tracking-tight">ACTIONABLE SUPPLIER INTELLIGENCE</h2>
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
-            Evaluate vendor catalog reliability, conflict frequency, data completeness, and manual review burden.
+            Evaluate vendor catalog reliability, conflict frequency, evidence quality, and trigger automated policy enforcement rules.
           </p>
         </div>
 
-        <div className="flex items-center space-x-2 text-xs font-mono bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800 text-slate-300">
-          <span>Tracked Suppliers: <strong className="text-amber-400">4 Tier-1 Vendors</strong></span>
+        <div className="flex items-center space-x-2 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800 text-slate-300">
+          <span>Active Supplier Policies: <strong className="text-emerald-400">{createdPolicies.length} Rules Enforced</strong></span>
         </div>
       </div>
 
       {/* Supplier Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {SUPPLIER_METRICS.map(sup => (
-          <div key={sup.id} className="p-5 bg-slate-950/80 rounded-xl border border-slate-800 space-y-4 font-mono hover:border-slate-700 transition-all">
+          <div key={sup.id} className="p-5 bg-slate-950/80 rounded-xl border border-slate-800 space-y-4 hover:border-slate-700 transition-all">
             
             {/* Top row */}
             <div className="flex items-start justify-between">
@@ -67,9 +77,21 @@ export default function SupplierIntelligence() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
-              <span>Catalog SKUs: <strong className="text-slate-200">{sup.productCount} SKUs</strong></span>
-              <span>Traceability: <strong className="text-emerald-400">{sup.traceability}%</strong></span>
+            {/* AI Recommendation & Policy Action */}
+            <div className="p-3 bg-slate-900 rounded-lg border border-amber-500/30 space-y-2">
+              <div className="text-amber-400 font-bold text-[10px] uppercase">AI Actionable Recommendation:</div>
+              <p className="text-slate-200 text-xs">{sup.aiRecommendation}</p>
+              
+              <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+                <span className="text-[10px] text-slate-400">Rule: <code>{sup.policyRule}</code></span>
+                <button
+                  onClick={() => handleCreatePolicy(sup)}
+                  className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded text-[11px] flex items-center space-x-1"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>Enforce Policy</span>
+                </button>
+              </div>
             </div>
 
           </div>
