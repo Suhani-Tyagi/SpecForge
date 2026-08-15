@@ -1,31 +1,27 @@
 import React from 'react';
-import { Cpu, Layers, ShieldCheck, Database, Rocket, Sparkles, Activity } from 'lucide-react';
+import { Cpu, LayoutDashboard, Layers, ShieldCheck, Package, Building2, Database, BarChart3, History, Settings, Award, Play, Sparkles } from 'lucide-react';
 
-export default function Header({ activeTab, setActiveTab, activeProductCount = 0 }) {
-  const tabs = [
-    { id: 'studio', label: 'Pipeline Studio', icon: Layers },
-    { id: 'review', label: 'HITL Review UI', icon: ShieldCheck, count: activeProductCount },
-    { id: 'batch', label: 'Batch Scalability Demo', icon: Rocket },
-    { id: 'kb', label: 'Knowledge Base RAG', icon: Database }
+export default function Header({ activeTab, setActiveTab, activeProductCount = 0, onRunDemo, onStartJudgeMode }) {
+  const primaryTabs = [
+    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'studio', label: 'Intelligence Studio', icon: Layers },
+    { id: 'queue', label: 'Review Queue', icon: ShieldCheck, count: activeProductCount },
+    { id: 'products', label: 'Products', icon: Package },
+    { id: 'suppliers', label: 'Suppliers', icon: Building2 },
+    { id: 'kb', label: 'Knowledge Base', icon: Database },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { id: 'audit', label: 'Audit Trail', icon: History }
   ];
 
-  const handleKeyDown = (e, index) => {
-    if (e.key === 'ArrowRight') {
-      const nextIndex = (index + 1) % tabs.length;
-      setActiveTab(tabs[nextIndex].id);
-    } else if (e.key === 'ArrowLeft') {
-      const prevIndex = (index - 1 + tabs.length) % tabs.length;
-      setActiveTab(tabs[prevIndex].id);
-    }
-  };
-
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-800 bg-[#0B0F17]/90 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+    <header className="sticky top-0 z-40 border-b border-slate-800 bg-[#070A10]/95 backdrop-blur-xl">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Top Branding & Main Action Bar */}
+        <div className="flex items-center justify-between h-16 border-b border-slate-800/60">
           
           {/* Logo & Brand */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveTab('overview')}>
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-400 p-0.5 shadow-lg shadow-amber-500/20">
               <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
                 <Cpu className="w-5 h-5 text-amber-400 animate-pulse" />
@@ -37,22 +33,60 @@ export default function Header({ activeTab, setActiveTab, activeProductCount = 0
                   SpecForge
                 </span>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-semibold tracking-wide">
-                  Enterprise AI Platform
+                  Enterprise AI
                 </span>
               </div>
-              <p className="text-xs text-slate-400 font-medium">
+              <p className="text-[11px] text-slate-400 font-medium">
                 Industrial Product Intelligence & Commerce Catalog Engine
               </p>
             </div>
           </div>
 
-          {/* Accessible WCAG 2.2 Navigation Tabs */}
+          {/* Action Buttons & Status */}
+          <div className="flex items-center space-x-3">
+            
+            {/* RUN DEMO Button */}
+            <button
+              onClick={onRunDemo}
+              className="flex items-center space-x-1.5 px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 font-extrabold rounded-xl text-xs border border-amber-500/30 transition-all font-mono shadow-sm"
+            >
+              <Play className="w-3.5 h-3.5 fill-amber-400" />
+              <span>RUN DEMO</span>
+            </button>
+
+            {/* JUDGE MODE Button */}
+            <button
+              onClick={onStartJudgeMode}
+              className="flex items-center space-x-1.5 px-4 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-extrabold rounded-xl text-xs shadow-lg shadow-amber-500/20 transition-all font-mono"
+            >
+              <Award className="w-4 h-4" />
+              <span>JUDGE MODE</span>
+            </button>
+
+            {/* Settings & System status dropdown link */}
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`p-2 rounded-xl border transition-all ${
+                activeTab === 'settings'
+                  ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                  : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200 hover:bg-slate-800'
+              }`}
+              title="System Settings & Health"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+
+          </div>
+        </div>
+
+        {/* Primary Navigation Bar */}
+        <div className="flex items-center justify-between py-2 overflow-x-auto">
           <nav
             role="tablist"
-            aria-label="SpecForge Main Navigation"
-            className="flex items-center space-x-1 bg-slate-900/80 p-1.5 rounded-xl border border-slate-800"
+            aria-label="SpecForge Primary Navigation"
+            className="flex items-center space-x-1 font-mono"
           >
-            {tabs.map((tab, idx) => {
+            {primaryTabs.map((tab) => {
               const Icon = tab.icon;
               const isSelected = activeTab === tab.id;
 
@@ -62,20 +96,17 @@ export default function Header({ activeTab, setActiveTab, activeProductCount = 0
                   role="tab"
                   id={`tab-${tab.id}`}
                   aria-selected={isSelected}
-                  aria-controls={`tabpanel-${tab.id}`}
-                  tabIndex={isSelected ? 0 : -1}
                   onClick={() => setActiveTab(tab.id)}
-                  onKeyDown={(e) => handleKeyDown(e, idx)}
-                  className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${
+                  className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap focus:outline-none ${
                     isSelected
-                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                      ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
                       : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" aria-hidden="true" />
                   <span>{tab.label}</span>
                   {tab.count > 0 && (
-                    <span className="ml-1 px-1.5 py-0.2 text-[10px] rounded-full bg-slate-900 text-amber-400 font-mono">
+                    <span className="ml-1 px-1.5 py-0.2 text-[10px] rounded-full bg-slate-950 text-amber-400 font-bold">
                       {tab.count}
                     </span>
                   )}
@@ -84,21 +115,12 @@ export default function Header({ activeTab, setActiveTab, activeProductCount = 0
             })}
           </nav>
 
-          {/* Model Status & API Badge */}
-          <div className="flex items-center space-x-3">
-            <div className="hidden lg:flex items-center space-x-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs font-mono text-slate-300">
-              <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-spin" style={{ animationDuration: '6s' }} aria-hidden="true" />
-              <span>Gemini 2.0 Flash</span>
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true"></span>
-            </div>
-            
-            <div className="flex items-center space-x-1 text-xs text-slate-400 font-mono">
-              <Activity className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" />
-              <span>RAG Engine: <strong className="text-emerald-400">ACTIVE</strong></span>
-            </div>
+          <div className="hidden xl:flex items-center space-x-2 text-[11px] font-mono text-slate-400 shrink-0 ml-4">
+            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Gemini 2.0 Flash + RAG Vector Taxonomy</span>
           </div>
-
         </div>
+
       </div>
     </header>
   );

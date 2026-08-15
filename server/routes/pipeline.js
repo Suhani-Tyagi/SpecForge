@@ -62,4 +62,9 @@ router.post('/pipeline/full', rateLimiter, apiKeyAuth, handleUpload, validateBod
  */
 router.post('/pipeline/batch', batchRateLimiter, apiKeyAuth, validateBody(batchInputSchema), (req, res, next) => pipelineController.batch(req, res, next));
 
+/**
+ * POST /api/copilot/query
+ */
+router.post('/copilot/query', rateLimiter, apiKeyAuth, (req, res, next) => pipelineController.copilotQuery(req, res, next));
+
 export default router;
