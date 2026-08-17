@@ -39,7 +39,7 @@ export const batchRateLimiter = rateLimit({
 /**
  * API Key Authentication Middleware
  * Checks `x-api-key` header against `process.env.APP_API_KEY`.
- * Bypassed in dev mode or if APP_API_KEY is not configured in environment.
+ * Accepts x-api-key header ONLY (query parameter authentication is strictly rejected).
  */
 export const apiKeyAuth = (req, res, next) => {
   const expectedKey = process.env.APP_API_KEY;
@@ -49,7 +49,7 @@ export const apiKeyAuth = (req, res, next) => {
     return next();
   }
 
-  const clientKey = req.headers['x-api-key'] || req.query.apiKey;
+  const clientKey = req.headers['x-api-key'];
 
   if (!clientKey || clientKey !== expectedKey) {
     return res.status(401).json({
@@ -64,7 +64,7 @@ export const apiKeyAuth = (req, res, next) => {
 
 /**
  * Dynamic CORS Origin Allowlist Configuration
- * Automatically supports localhost and all *.vercel.app production domain origins
+ * Uses strict explicit allowlist for production origins and localhost.
  */
 export const getCorsOptions = () => {
   const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
@@ -75,6 +75,8 @@ export const getCorsOptions = () => {
   const defaultAllowlist = [
     'http://localhost:5173',
     'http://localhost:3001',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:3001',
     'https://spec-forge-chi.vercel.app'
   ];
 
@@ -82,12 +84,8 @@ export const getCorsOptions = () => {
 
   return {
     origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, curl, server-to-server)
-      // Allow any *.vercel.app domain origin or any localhost origin automatically
-      const isVercelDomain = origin && /^https:\/\/[a-zA-Z0-9-]+\.vercel\.app$/.test(origin);
-      const isLocalhost = origin && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-
-      if (!origin || allowlist.includes(origin) || isVercelDomain || isLocalhost || process.env.NODE_ENV !== 'production') {
+      // Allow requests with no origin (e.g. server-to-server, curl, same-origin)
+      if (!origin || allowlist.includes(origin)) {
         callback(null, true);
       } else {
         const corsErr = new Error(`CORS policy violation: Origin '${origin}' is not allowed.`);
@@ -101,3 +99,4 @@ export const getCorsOptions = () => {
     allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'x-request-id']
   };
 };
+

@@ -216,11 +216,18 @@ export class PipelineController {
           evidence = [{ type: 'Conflict Resolution', detail: 'Zero source discrepancies found' }];
         }
       } else if (lowerQ.includes('supplier') || lowerQ.includes('quality')) {
-        answer = `Supplier intelligence indicates: Global supplier quality averages 86.4%. Supplier A (ElectroDrive Corp) maintains 94% quality score with a 3% conflict rate, whereas Supplier C (Apex Industrial Valve) exhibits a 24% conflict rate requiring high HITL exception review.`;
-        evidence = [
-          { type: 'Supplier Metric', detail: 'ElectroDrive Corp: 94% Quality, 3% Conflicts' },
-          { type: 'Supplier Metric', detail: 'Apex Industrial Valve: 68% Quality, 24% Conflicts' }
-        ];
+        const supplierName = activeProduct?.supplier || activeProduct?.Part_Manuf || activeProduct?.manufacturerName;
+        if (supplierName) {
+          const confidencePct = ((activeProduct.confidence || 0.95) * 100).toFixed(0);
+          answer = `Supplier intelligence for ${supplierName}: Current product record exhibits ${confidencePct}% overall extraction confidence. Validation status: ${activeProduct?.commerceStatus || 'READY'}.`;
+          evidence = [
+            { type: 'Supplier Context', detail: `${supplierName}` },
+            { type: 'Extraction Confidence', detail: `${confidencePct}%` }
+          ];
+        } else {
+          answer = `Insufficient supplier data in active product context. Please select a product record with supplier metadata to inspect quality metrics.`;
+          evidence = [{ type: 'Supplier Context', detail: 'No active supplier data present in payload' }];
+        }
       } else if (lowerQ.includes('risk') || lowerQ.includes('score')) {
         const risk = activeProduct?.riskScore ?? 18;
         const level = activeProduct?.riskLevel || 'LOW';

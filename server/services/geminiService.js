@@ -106,7 +106,7 @@ INPUT TYPE: ${inputType}
 ${sanitizedText}
 
 INSTRUCTIONS:
-1. Identify the specific Product Name and confirm the Category Code.
+1. Identify the specific Product Name, Manufacturer Part Number (MPN), Manufacturer Name, and Brand Name (ignore placeholders like "-- Unbranded --", "-- No Unilog Brand --").
 2. Extract raw attributes matching typical category attributes or other present technical specs.
 3. CRITICAL FIDELITY RULE: If an attribute is NOT explicitly mentioned or determinable from input, set value EXACTLY to "unknown". DO NOT guess missing values in this extraction stage!
 
@@ -115,6 +115,9 @@ Respond ONLY with valid JSON matching this schema:
   "product_name": "Product Name",
   "category_code": "${selectedCategory.code}",
   "category_name": "${selectedCategory.category} -> ${selectedCategory.subcategory}",
+  "mfg_part_num": "MPN or unknown",
+  "manufacturer": "Manufacturer name or unknown",
+  "brand": "Brand name or unknown",
   "raw_attributes": {
     "attribute_key": "extracted value or unknown"
   },
@@ -169,6 +172,9 @@ Respond ONLY with valid JSON matching this schema:
           product_name: textContent ? textContent.slice(0, 40) : 'Industrial Component',
           category_code: selectedCategory.code,
           category_name: `${selectedCategory.category} -> ${selectedCategory.subcategory}`,
+          mfg_part_num: 'unknown',
+          manufacturer: 'unknown',
+          brand: 'unknown',
           raw_attributes: selectedCategory.typical_attributes.reduce((acc, k) => ({ ...acc, [k]: 'unknown' }), {}),
           extraction_summary: `Extraction fallback: ${err.message}`
         }
@@ -189,11 +195,14 @@ Respond ONLY with valid JSON matching this schema:
 
     const prompt = `
 You are SpecForge's RAG Enrichment AI Engine (Stage 2).
-Your task is to enrich a product record with raw attributes (some of which are "unknown") by inferring missing values using RAG Reference Knowledge Base patterns.
+Your task is to enrich a product record with raw attributes (some of which are "unknown") by inferring missing values using RAG Reference Knowledge Base patterns and generating Unilog standard product descriptions.
 
 PRODUCT TO ENRICH:
 Product Name: "${extractedData.product_name}"
 Category: ${extractedData.category_name} (Code: ${categoryCode})
+Manufacturer Part Num: "${extractedData.mfg_part_num || 'unknown'}"
+Manufacturer Name: "${extractedData.manufacturer || 'unknown'}"
+Brand Name: "${extractedData.brand || 'unknown'}"
 Raw Extracted Attributes:
 ${JSON.stringify(extractedData.raw_attributes, null, 2)}
 
@@ -203,18 +212,32 @@ Category Defaults: ${JSON.stringify(ragContext.attributeDefaults, null, 2)}
 Matching Reference Products in KB:
 ${JSON.stringify(ragContext.referenceProducts, null, 2)}
 
+UNILOG CONTENT GUIDELINES FOR DESCRIPTIONS:
+- SHORT_DESC / Product Title = Brand + Series + MPN + Item Type + key attributes
+- INVOICE_DESC = Uppercase, Max 40 characters (e.g. "DISHWASHER LEG 5 SST 120V 15A 50-1/4IN")
+- MOBILE_DESC = 60-80 characters summary
+- LONG_DESC = Comprehensive specification string with standard UOM units (e.g., "in", "mm", "kW", "V", "A")
+
 INSTRUCTIONS:
 1. For every attribute in raw_attributes (plus typical category attributes):
    - If raw_attributes had an explicit value (not "unknown"), KEEP IT! Set source = "extracted", confidence = "high", and reasoning = "Explicitly extracted from input source."
    - If raw_attributes was "unknown", use RAG reference products and engineering norms to infer a plausible value.
      - Derived from reference product: source = "inferred", confidence = "medium", reasoning = "Inferred from RAG reference pattern."
      - Derived from category baseline: source = "category_default", confidence = "medium" or "low", reasoning = "Standard industry baseline."
+2. Generate all required Unilog description formats: mobile_desc, invoice_desc, short_desc, long_desc.
 
 Respond ONLY with valid JSON matching this schema:
 {
   "product_name": "${extractedData.product_name}",
   "category_code": "${categoryCode}",
   "category_name": "${extractedData.category_name}",
+  "mfg_part_num": "${extractedData.mfg_part_num || ''}",
+  "manufacturer_name": "${extractedData.manufacturer || ''}",
+  "brand_name": "${extractedData.brand || ''}",
+  "mobile_desc": "Mobile description (60-80 chars)",
+  "invoice_desc": "INVOICE DESC (UPPERCASE <= 40 CHARS)",
+  "short_desc": "Short Product Title",
+  "long_desc": "Detailed long specification description",
   "enriched_attributes": {
     "attribute_key": {
       "value": "Value",
@@ -277,6 +300,13 @@ Respond ONLY with valid JSON matching this schema:
           product_name: extractedData.product_name || 'Industrial Product',
           category_code: categoryCode,
           category_name: extractedData.category_name || 'Industrial Equipment',
+          mfg_part_num: extractedData.mfg_part_num || '',
+          manufacturer_name: extractedData.manufacturer || '',
+          brand_name: extractedData.brand || '',
+          mobile_desc: extractedData.product_name || 'Industrial Product',
+          invoice_desc: (extractedData.product_name || 'INDUSTRIAL PRODUCT').slice(0, 40).toUpperCase(),
+          short_desc: extractedData.product_name || 'Industrial Product',
+          long_desc: `${extractedData.product_name || 'Industrial Product'}, ${categoryCode}`,
           enriched_attributes: fallbackAttrs,
           enrichment_summary: `Enrichment fallback applied: ${err.message}`
         }
@@ -367,6 +397,13 @@ Respond ONLY with valid JSON matching this schema:
           product_name: enrichedData.product_name,
           category_code: enrichedData.category_code,
           category_name: enrichedData.category_name,
+          mfg_part_num: enrichedData.mfg_part_num || '',
+          manufacturer_name: enrichedData.manufacturer_name || '',
+          brand_name: enrichedData.brand_name || '',
+          mobile_desc: enrichedData.mobile_desc || '',
+          invoice_desc: enrichedData.invoice_desc || '',
+          short_desc: enrichedData.short_desc || '',
+          long_desc: enrichedData.long_desc || '',
           attributes: enrichedData.enriched_attributes,
           validation: {
             status: finalStatus,
@@ -389,6 +426,13 @@ Respond ONLY with valid JSON matching this schema:
           product_name: enrichedData.product_name,
           category_code: enrichedData.category_code,
           category_name: enrichedData.category_name,
+          mfg_part_num: enrichedData.mfg_part_num || '',
+          manufacturer_name: enrichedData.manufacturer_name || '',
+          brand_name: enrichedData.brand_name || '',
+          mobile_desc: enrichedData.mobile_desc || '',
+          invoice_desc: enrichedData.invoice_desc || '',
+          short_desc: enrichedData.short_desc || '',
+          long_desc: enrichedData.long_desc || '',
           attributes: enrichedData.enriched_attributes,
           validation: {
             status: deterministicViolations.length > 0 ? 'warning' : 'valid',

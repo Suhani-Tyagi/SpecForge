@@ -5,6 +5,9 @@ export const ExtractionResponseSchema = z.object({
   product_name: z.string().default('Industrial Product'),
   category_code: z.string().default('31-16-15'),
   category_name: z.string().default('Fasteners -> Hex Bolts'),
+  mfg_part_num: z.string().optional(),
+  manufacturer: z.string().optional(),
+  brand: z.string().optional(),
   raw_attributes: z.record(z.any()).default({}),
   extraction_summary: z.string().default('Raw attribute extraction complete.')
 });
@@ -13,7 +16,7 @@ export const ExtractionResponseSchema = z.object({
 export const EnrichedAttributeSchema = z.object({
   value: z.any(),
   confidence: z.enum(['high', 'medium', 'low']).default('medium'),
-  source: z.enum(['extracted', 'inferred', 'category_default']).default('inferred'),
+  source: z.enum(['extracted', 'inferred', 'category_default', 'supplier_doc', 'verified_structured']).default('inferred'),
   reasoning: z.string().default('Enriched from knowledge base reference patterns.')
 });
 
@@ -21,6 +24,13 @@ export const EnrichmentResponseSchema = z.object({
   product_name: z.string(),
   category_code: z.string(),
   category_name: z.string(),
+  mfg_part_num: z.string().optional(),
+  manufacturer_name: z.string().optional(),
+  brand_name: z.string().optional(),
+  mobile_desc: z.string().optional(),
+  invoice_desc: z.string().optional(),
+  short_desc: z.string().optional(),
+  long_desc: z.string().optional(),
   enriched_attributes: z.record(EnrichedAttributeSchema),
   enrichment_summary: z.string().default('Attribute enrichment complete.')
 });
@@ -40,3 +50,4 @@ export const ValidationResponseSchema = z.object({
   rule_violations: z.array(RuleViolationSchema).default([]),
   recommendations: z.array(z.string()).default([])
 });
+

@@ -61,7 +61,7 @@ export default function AICopilot({ activeProduct, onSelectTab, onToast }) {
       ]);
     } catch (err) {
       console.error("[Copilot Error]:", err);
-      let fallbackText = `SpecForge Decision Copilot Analysis: For ${activeProduct?.name || 'Heavy-Duty Motor'}, extraction confidence is 81% and Factual Trust Score is 64/100. Status: BLOCKED due to 415V vs 380V voltage conflict.`;
+      let fallbackText = `SpecForge Decision Copilot Analysis: For ${activeProduct?.name || 'Selected Item'}, extraction confidence is ${((activeProduct?.confidence || 0.95) * 100).toFixed(0)}%. Status: ${activeProduct?.commerceStatus || activeProduct?.validation?.status || 'READY'}.`;
       
       setMessages(prev => [
         ...prev,

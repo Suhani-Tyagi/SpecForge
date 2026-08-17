@@ -8,8 +8,9 @@
 export const DEMO_PRODUCTS = [
   {
     id: "PROD-MOTOR-01",
-    sku: "SF-MTR-415V-5HP",
-    name: "Industrial 3-Phase Induction Motor 5HP",
+    isDemo: true,
+    sku: "DEMO-MTR-415V-5HP",
+    name: "Industrial 3-Phase Induction Motor 5HP [DEMO]",
     category: "Electric Motors & Drives",
     categoryCode: "23-15-16",
     supplier: "ElectroDrive Corp",
@@ -48,8 +49,9 @@ export const DEMO_PRODUCTS = [
   },
   {
     id: "PROD-MOTOR-02",
-    sku: "SF-MTR-415V-CONFL",
-    name: "Heavy-Duty Industrial Motor (Conflicting Specs)",
+    isDemo: true,
+    sku: "DEMO-MTR-415V-CONFL",
+    name: "Heavy-Duty Industrial Motor [DEMO]",
     category: "Electric Motors & Drives",
     categoryCode: "23-15-16",
     supplier: "Global Power Supplies",
@@ -91,8 +93,9 @@ export const DEMO_PRODUCTS = [
   },
   {
     id: "PROD-PUMP-01",
-    sku: "SF-PMP-CENT-750W",
-    name: "High-Pressure Centrifugal Chemical Pump",
+    isDemo: true,
+    sku: "DEMO-PMP-CENT-750W",
+    name: "High-Pressure Centrifugal Chemical Pump [DEMO]",
     category: "Pumps & Fluid Handling",
     categoryCode: "24-10-12",
     supplier: "FluidTech Systems",
